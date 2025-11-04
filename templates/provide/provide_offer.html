@@ -1,3 +1,4 @@
+{% load l10n %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -92,6 +93,17 @@
             {% endfor %}
         </div>
         {% endif %}
+        
+        {% if debug_metadata %}
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-bug"></i> Debug: Initial Metadata
+            </div>
+            <div class="card-body">
+                <pre class="mb-0">{{ debug_metadata|pprint }}</pre>
+            </div>
+        </div>
+        {% endif %}
         <div class="card">
             <div class="card-header d-flex align-items-center">
                 <i class="fas fa-file-alt icon-header me-2"></i>
@@ -108,25 +120,25 @@
                     <h4>Offer</h4>
                     <div class="form-group">
                         <label for="offer_title" class="form-label">Title </label>
-                        <input type="text" id="offer_title" name="offer_title" class="form-control" required placeholder="My Offer Title">
+                        <input type="text" id="offer_title" name="offer_title" class="form-control" required placeholder="My Offer Title" value="{{ form.offer_title.value|default:'' }}">
                     </div>
                     <div class="form-group">
                         <label for="offer_description" class="form-label">Description</label>
-                        <input type="text" id="offer_description" name="offer_description" class="form-control" required placeholder="My Offer Description">
+                        <input type="text" id="offer_description" name="offer_description" class="form-control" required placeholder="My Offer Description" value="{{ form.offer_description.value|default:'' }}">
                     </div>
                     <div class="form-group">
                         <label for="keywords" class="form-label">Keywords (comma-separated)</label>
-                        <input type="text" id="keywords" name="keywords" class="form-control" required placeholder="JSON, Weather, Helsinki">
+                        <input type="text" id="keywords" name="keywords" class="form-control" required placeholder="JSON, Weather, Helsinki" value="{{ form.keywords.value|default:'' }}">
                     </div>
                     <div class="form-group">
                         <label for="offer_publisher" class="form-label">Publisher</label>
-                        <input type="text" id="offer_publisher" name="offer_publisher" class="form-control" required placeholder="https://vtt.fi/publisher">
+                        <input type="text" id="offer_publisher" name="offer_publisher" class="form-control" required placeholder="https://vtt.fi/publisher" value="{{ form.offer_publisher.value|default:'' }}">
                     </div>
                     <div class="form-group">
                         <label for="offer_language" class="form-label">Language</label>
                         <select id="offer_language" name="offer_language" class="form-control" required>
                             <option value="">Select language</option>
-                            <option value="EN">EN</option>
+                            <option value="EN" {% if form.offer_language.value == 'EN' %}selected{% endif %}>EN</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -143,8 +155,8 @@
                         <label for="accessUrl" class="form-label">Offer Access URL</label>
                         <div class="input-group">
                             <div class="border p-3 w-100" style="border-radius: 8px; cursor: pointer; background-color: #f8f9fa; display: flex; align-items: center;">
-                                <input type="url" id="accessUrl" name="accessUrl" class="form-control" placeholder="Enter the file URL manually, or click the button to upload a file">
-                                <button type="button" class="btn btn-outline-danger ms-2" id="removeFileBtn" style="display:none;">Remove</button>
+                                <input type="url" id="accessUrl" name="accessUrl" class="form-control" placeholder="Enter the file URL manually, or click the button to upload a file" value="{{ form.accessUrl.value|default:'' }}">
+                                <button type="button" class="btn btn-outline-danger ms-2" id="removeFileBtn" style="display:{% if form.accessUrl.value %}inline-block{% else %}none{% endif %}">Remove</button>
                                 <input type="file" id="fileInput" name="file" multiple style="display:none;">
                                 <button type="button" class="btn btn-outline-primary ms-2" id="fileUploadBtn">
                                     <i class="fas fa-upload"></i> Upload File
@@ -184,19 +196,19 @@
                     <h4>Data Access Rules</h4>
                     <div class="form-group">
                         <label for="start" class="form-label">Access Start Date</label>
-                        <input type="datetime-local" id="start" name="start" class="form-control" required>
+                        <input type="datetime-local" id="start" name="start" class="form-control" required value="{{ form.start.value|default:'' }}">
                     </div>
                     <div class="form-group">
                         <label for="end" class="form-label">Access End Date</label>
-                        <input type="datetime-local" id="end" name="end" class="form-control" required>
+                        <input type="datetime-local" id="end" name="end" class="form-control" required value="{{ form.end.value|default:'' }}">
                     </div>
                     <div class="form-group">
                         <label for="access_policy" class="form-label">Access Policy</label>
                         <select id="access_policy" name="access_policy" class="form-control" required>
                             <option value="">Select access policy</option>
-                            <option value="between_dates">Provide access between dates</option>
+                            <option value="between_dates" {% if form.access_policy.value == 'between_dates' %}selected{% endif %}>Provide access between dates</option>
                         </select>
-                        <input type="hidden" id="policy_value" name="value">
+                        <input type="hidden" id="policy_value" name="value" value="{{ form.value.value|default:'' }}">
                     </div>
                     <hr>
                     <button type="submit" class="btn btn-primary mt-3">Provide the Offering</button>
@@ -209,10 +221,40 @@
     document.addEventListener("DOMContentLoaded", function () {
         const accessPolicySelect = document.getElementById("access_policy");
         const policyValueInput = document.getElementById("policy_value");
+        const startDateInput = document.getElementById("start");
+        const endDateInput = document.getElementById("end");
 
+        function updatePolicyValue() {
+            if (accessPolicySelect.value === "between_dates") {
+                const startDate = startDateInput.value;
+                const endDate = endDateInput.value;
+                if (startDate && endDate) {
+                    policyValueInput.value = JSON.stringify({
+                        type: "between_dates",
+                        start: startDate,
+                        end: endDate
+                    });
+                }
+            } else {
+                policyValueInput.value = "";
+            }
+        }
+
+        // Update policy value when any of the inputs change
+        startDateInput.addEventListener("change", updatePolicyValue);
+        endDateInput.addEventListener("change", updatePolicyValue);
         accessPolicySelect.addEventListener("change", function () {
             if (accessPolicySelect.value === "between_dates") {
-                policyValueInput.value = "{{ fixed_policy_rule|escapejs }}";
+                // Construct policy value from start and end dates
+                const startDate = document.getElementById("start").value;
+                const endDate = document.getElementById("end").value;
+                if (startDate && endDate) {
+                    policyValueInput.value = JSON.stringify({
+                        type: "between_dates",
+                        start: startDate,
+                        end: endDate
+                    });
+                }
             } else {
                 policyValueInput.value = "";
             }

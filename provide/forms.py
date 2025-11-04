@@ -11,8 +11,9 @@ class UploadMetadataForm(forms.Form):
     offer_language = forms.CharField()
     offer_license = forms.ChoiceField(choices=[])
     accessUrl = forms.URLField()
-    start = forms.DateTimeField()
-    end = forms.DateTimeField()
+    start = forms.DateTimeField(required=True, input_formats=['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M'])
+    end = forms.DateTimeField(required=True, input_formats=['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M'])
+    access_policy = forms.ChoiceField(choices=[('', 'Select access policy'), ('between_dates', 'Provide access between dates')], required=True)
     value = forms.CharField(widget=forms.Textarea)
     # Authentication fields for access URL testing and artifact creation
     AUTH_TYPE_CHOICES = (

@@ -32,13 +32,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',  # CSRF middleware disabled - DO NOT DO THIS IN PRODUCTION
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -101,11 +101,20 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = config('DJANGO_CORS_ALLOWED_ORIGINS', default='*') == '*'
+CORS_ORIGIN_ALLOW_ALL = True  # For development only
+CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOWED_ORIGIN_REGEXES = config('DJANGO_CORS_ALLOWED_ORIGIN_REGEXES', 
-                                    default=r"^http://127\.0\.0\.1:\d+$,^http://localhost:\d+$", 
-                                    cast=Csv())
+# CSRF settings
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read the cookie
+CSRF_COOKIE_SECURE = False    # Set to True in production with HTTPS
+CSRF_COOKIE_SAMESITE = None   # Required for cross-origin requests
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:8000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:8000',
+]
 
 # Custom settings
 DATA_UPLOAD_SERVICE_URL = config('DATA_UPLOAD_SERVICE_URL','')

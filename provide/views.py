@@ -86,14 +86,68 @@ def generate_user_metadata(data, license_url):
 
 
 # Views
+
+def handle_metadata(request):
+    """Handle incoming metadata and store in session."""
+    if request.method == 'POST':
+        try:
+            metadata = json.loads(request.POST.get('metadata', '{}'))
+            print("Received metadata:", metadata)  # Debug print
+            
+            # Extract and store metadata in session
+            offer_data = metadata.get('offer', {})
+            access_rules = metadata.get('dataAccessRules', {})
+            
+            # Convert access dates to proper format if they are empty
+            start_date = access_rules.get('accessStartDate', '')
+            end_date = access_rules.get('accessEndDate', '')
+            
+            # If dates are empty, set default values (e.g., today and a month from today)
+            from datetime import datetime, timedelta
+            today = datetime.now()
+            if not start_date:
+                start_date = today.strftime('%Y-%m-%dT%H:%M')
+            if not end_date:
+                end_date = (today + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M')
+            
+            # Create policy value based on the dates
+            policy_value = {
+                "type": "between_dates",
+                "start": start_date,
+                "end": end_date
+            }
+            
+            initial_data = {
+                'offer_title': offer_data.get('title', ''),
+                'offer_description': offer_data.get('description', ''),
+                'keywords': offer_data.get('keywords', ''),
+                'offer_publisher': offer_data.get('publisher', ''),
+                'offer_language': offer_data.get('language', ''),
+                'accessUrl': offer_data.get('offerAccessUrl', ''),
+                'start': start_date,
+                'end': end_date,
+                'access_policy': 'between_dates',  # Set the policy type
+                'value': json.dumps(policy_value),  # Set the policy value
+                'auth_type': 'none'  # Default auth type
+            }
+            
+            print("Storing in session:", initial_data)  # Debug print
+            request.session['initial_metadata'] = initial_data
+            return redirect('provide:provide_offer')
+            
+        except json.JSONDecodeError as e:
+            print("JSON decode error:", str(e))  # Debug print
+            messages.error(request, 'Invalid metadata format received')
+            return redirect('provide:provide_offer')
+    return redirect('provide:provide_offer')
+
 def provide_offer(request):
     """Provide an offer with metadata."""
-    fixed_policy_rule = get_fixed_policy_rule()
     connector_url = settings.CONNECTOR_URL
     license_choices = get_license_choices()
     
-    # Prepopulate form data if available
-    initial_data = {
+    # Get initial data from session if available
+    initial_data = request.session.pop('initial_metadata', {
         'offer_title': '',
         'offer_description': '',
         'keywords': '',
@@ -101,7 +155,11 @@ def provide_offer(request):
         'offer_language': '',
         'offer_license': '',
         'accessUrl': '',
-    }
+        'start': '',
+        'end': '',
+        'value': '',
+        'auth_type': 'none'
+    })
 
     if request.method == 'POST':
         form = UploadMetadataForm(request.POST, license_choices=license_choices, request=request)
@@ -129,13 +187,17 @@ def provide_offer(request):
         else:
             messages.error(request, "Form is invalid. Please correct the errors and try again.")
     else:
-        form = UploadMetadataForm(request.POST or None, license_choices=license_choices, request=request)
+        # For GET requests, initialize form with data from session
+        form = UploadMetadataForm(initial=initial_data, license_choices=license_choices, request=request)
+        # Debug prints to help diagnose metadata flow
+        print("Session data:", dict(request.session))
+        print("Initial data being used:", initial_data)
 
     return render(request, 'provide/provide_offer.html', {
         'form': form,
-        'fixed_policy_rule': fixed_policy_rule,
         'licenses': License.objects.all(),
         'data_space_connector_url': connector_url,
+        'debug_metadata': initial_data,  # Pass to template for debugging
     })
 
 # in provide/views.py

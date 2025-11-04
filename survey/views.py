@@ -1,11 +1,11 @@
-from django.shortcuts import render  # Add this import
+from django.shortcuts import render
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.views.decorators.http import require_http_methods
 from .models import SurveyResponse, Question, Answer
 import json
 
-@csrf_exempt  # Add CSRF protection if needed in the AJAX headers
+@require_http_methods(["GET", "POST"])
 def survey_view(request):
     if request.method == "POST":
         try:
