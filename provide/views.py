@@ -256,6 +256,7 @@ def handle_metadata(request):
 def provide_offer(request):
     """Provide an offer with metadata."""
     connector_url = settings.CONNECTOR_URL
+    consumer_url = getattr(settings, 'DATA_SPACE_CONSUMER_SERVICE_URL', '')
     license_choices = get_license_choices()
     
     # Get initial data from session if available
@@ -312,6 +313,7 @@ def provide_offer(request):
         'form': form,
         'licenses': License.objects.all(),
         'data_space_connector_url': connector_url,
+        'data_space_consumer_url': consumer_url,
         'debug_metadata': initial_data,  # Pass to template for debugging
     })
 

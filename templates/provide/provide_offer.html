@@ -211,7 +211,14 @@
                         <input type="hidden" id="policy_value" name="value" value="{{ form.value.value|default:'' }}">
                     </div>
                     <hr>
-                    <button type="submit" class="btn btn-primary mt-3">Provide the Offering</button>
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary">Provide the Offering</button>
+                        {% if data_space_consumer_url %}
+                        <a class="btn btn-outline-secondary" href="{{ data_space_consumer_url }}" target="_blank" rel="noopener noreferrer">
+                            Open Consume
+                        </a>
+                        {% endif %}
+                    </div>
                 </form>
             </div>
         </div>
