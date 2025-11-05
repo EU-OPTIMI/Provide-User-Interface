@@ -1,6 +1,5 @@
+import logging
 import uuid
-# views.py
-
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -25,6 +24,8 @@ try:
     from .models import UploadedData
 except ImportError:
     UploadedData = None  # Will need to add this model
+
+logger = logging.getLogger(__name__)
 
 # Constants
 ALLOWED_FILE_TYPES = ["application/json"]
@@ -113,7 +114,7 @@ def handle_metadata(request):
     if request.method == 'POST':
         try:
             metadata = json.loads(request.POST.get('metadata', '{}'))
-            print("Received metadata:", metadata)  # Debug print
+            logger.debug("Received metadata payload for provide flow", extra={'payload': metadata})
             
             # Extract and store metadata in session
             offer_data = metadata.get('offer', {})
@@ -154,12 +155,12 @@ def handle_metadata(request):
                 'auth_type': 'none'  # Default auth type
             }
             
-            print("Storing in session:", initial_data)  # Debug print
+            logger.info("Persisting initial provider metadata in session", extra={'offer_title': initial_data.get('offer_title')})
             request.session['initial_metadata'] = initial_data
             return redirect('provide:provide_offer')
             
         except json.JSONDecodeError as e:
-            print("JSON decode error:", str(e))  # Debug print
+            logger.error("Invalid JSON metadata received for provide flow", exc_info=e)
             messages.error(request, 'Invalid metadata format received')
             return redirect('provide:provide_offer')
     return redirect('provide:provide_offer')
@@ -186,7 +187,8 @@ def provide_offer(request):
 
     if request.method == 'POST':
         form = UploadMetadataForm(request.POST, license_choices=license_choices, request=request)
-        print(form.errors)
+        if form.errors:
+            logger.warning("Provide offer form validation errors", extra={'errors': form.errors})
         if form.is_valid():
             data = form.cleaned_data.copy()
             # Convert any datetime objects to ISO strings for session serialization
@@ -200,21 +202,21 @@ def provide_offer(request):
             license_url = selected_license.access_url if selected_license else ""
 
             user_metadata = generate_user_metadata(data, license_url)
-            print("User Metadata: ", user_metadata)
+            logger.debug("Prepared user metadata for connector runner", extra={'offer_title': user_metadata['offer'].get('title')})
 
             result = runner(user_metadata)
             if result:
+                logger.info("Offer successfully published to data space", extra={'offer_title': user_metadata['offer'].get('title')})
                 messages.success(request, "The offer was successfully provided to the data space.")
             else:
+                logger.error("Offer publishing failed according to connector runner", extra={'offer_title': user_metadata['offer'].get('title')})
                 messages.error(request, "Something went wrong with providing the offer.")
         else:
             messages.error(request, "Form is invalid. Please correct the errors and try again.")
     else:
         # For GET requests, initialize form with data from session
         form = UploadMetadataForm(initial=initial_data, license_choices=license_choices, request=request)
-        # Debug prints to help diagnose metadata flow
-        print("Session data:", dict(request.session))
-        print("Initial data being used:", initial_data)
+        logger.debug("Loaded initial provider form data", extra={'session_keys': list(request.session.keys())})
 
     return render(request, 'provide/provide_offer.html', {
         'form': form,
