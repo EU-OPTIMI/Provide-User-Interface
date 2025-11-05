@@ -4,475 +4,714 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Provide Offer to Data Space</title>
-    <!-- Include Bootstrap CSS -->
+    <title>Provide | Optimi Dataspace</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Include FontAwesome for icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
-    <!-- Custom styles -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <style>
+        :root {
+            --brand-gradient: linear-gradient(135deg, #0d6efd, #6610f2);
+            --brand-bg: radial-gradient(circle at top, #f5f9ff 0%, #ffffff 60%);
+            --card-radius: 24px;
+            --shadow-lg: 0 25px 45px rgba(13, 110, 253, 0.20);
+            --shadow-sm: 0 12px 24px rgba(15, 23, 42, 0.08);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
         body {
-            background-color: #e9ecef;
-            color: #333;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--brand-bg);
+            font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
         }
-        .navbar {
-            background-color: #ffffff;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        .hero {
+            background: var(--brand-gradient);
+            color: #fff;
+            border-radius: var(--card-radius);
+            padding: 42px 36px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
         }
-        .navbar-brand {
-            font-weight: bold;
-            color: #007bff;
+        .hero::after,
+        .hero::before {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.20);
         }
-        .btn-copy {
+        .hero::after {
+            width: 200px;
+            height: 200px;
+            top: -60px;
+            right: -40px;
+        }
+        .hero::before {
+            width: 140px;
+            height: 140px;
+            bottom: -40px;
+            left: -30px;
+        }
+        .stepper {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 28px;
+        }
+        .stepper-card {
+            flex: 1 1 180px;
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 18px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .step-index {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.95rem;
+            background: rgba(255, 255, 255, 0.22);
+        }
+        .stepper-card.completed .step-index {
+            background: #22c55e;
+            color: #fff;
+        }
+        .stepper-card.active {
+            background: rgba(255, 255, 255, 0.32);
+        }
+        .overview-card,
+        .form-card {
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow-sm);
             border: none;
+            background: #fff;
+        }
+        .overview-card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 2px 4px 2px 0;
+        }
+        .chip.brand {
+            background: rgba(13, 110, 253, 0.12);
+            color: #0d6efd;
+        }
+        .chip.soft {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .chip.neutral {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        .section-heading {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+        .helper-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .btn-primary-rounded {
+            border-radius: 999px;
+            background: var(--brand-gradient);
+            border: none;
+            padding: 0.65rem 1.8rem;
+            font-weight: 600;
+        }
+        .btn-outline-rounded {
+            border-radius: 999px;
+            border: 1px solid #64748b;
+            color: #1f2937;
+            font-weight: 600;
+            padding: 0.65rem 1.6rem;
             background: transparent;
-            color: #007bff;
-            cursor: pointer;
         }
-        .btn-copy:hover {
-            color: #0056b3;
+        .alert-rounded {
+            border-radius: 18px;
+            border: none;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8rem;
         }
-        .card {
-            border-radius: 0.75rem;
-            border: 1px solid #ddd;
-            background-color: #ffffff;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        .alert-rounded .icon-wrap {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
         }
-        .card-header {
-            background-color: #007bff;
-            color: white;
-            border-bottom: 1px solid #ddd;
-            font-size: 1.25rem;
+        .code-block {
+            background: #0f172a;
+            color: #f8fafc;
+            border-radius: 16px;
+            padding: 16px 20px;
+            font-size: 0.9rem;
+            position: relative;
+            font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         }
-        .card-body {
-            padding: 2rem;
+        .code-block button {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            border: none;
+            background: rgba(248, 250, 252, 0.12);
+            color: #e2e8f0;
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
+        .section-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 18px;
         }
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #004085;
+        .form-control,
+        .form-select {
+            border-radius: 14px;
+            border: 1px solid #cbd5f5;
+            padding: 0.75rem 0.95rem;
         }
-        .readonly-input {
-            background-color: #e9ecef;
-            color: #6c757d;
-            cursor: not-allowed;
+        .form-control:focus,
+        .form-select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.12);
+            border-color: #0d6efd;
+        }
+        .error-text {
+            color: #dc2626;
+            font-size: 0.85rem;
+            margin-top: 6px;
+        }
+        .working-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            background: rgba(13, 110, 253, 0.12);
+            color: #0d6efd;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .list-hint li + li {
+            margin-top: 6px;
+        }
+        .table-hint tbody tr:nth-child(odd) {
+            background: rgba(241, 245, 249, 0.4);
         }
     </style>
 </head>
 <body>
-
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <!-- Left: Title -->
-            <a class="navbar-brand" href="#">Data Space</a>
-            
-            <!-- Middle: Copyable URL -->
-            <div class="d-flex align-items-center mx-auto" style="max-width: 600px; flex-grow: 1;">
-                <input type="text" class="form-control form-control-sm" id="dataSpaceUrl" value="{{ data_space_connector_url }}" readonly>
-                <button class="btn btn-copy ms-2" id="copyUrlBtn">
-                    <i class="fas fa-copy"></i>
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container mt-5">
-        <h1>Provide Offer to Data Space</h1>
-        {% if messages %}
-        <div class="mt-3">
-            {% for message in messages %}
-                <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}">
-                    {{ message }}
+    <div class="container py-5">
+        <section class="hero mb-5">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <p class="text-uppercase fw-semibold mb-2" style="letter-spacing: 2px;">Provider Journey</p>
+                    <h1 class="fw-bold mb-3">Share brilliant datasets with a smile</h1>
+                    <p class="mb-0">Create, describe, publish, and monitor your offer in one flow. We’ll keep things cheerful, plain-English, and on track.</p>
                 </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        
-        {% if debug_metadata %}
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <i class="fas fa-bug"></i> Debug: Initial Metadata
             </div>
-            <div class="card-body">
-                <pre class="mb-0">{{ debug_metadata|pprint }}</pre>
+            <div class="stepper">
+                {% for step in progress_steps %}
+                <div class="stepper-card {% if step.status == 'completed' %}completed{% elif step.status == 'active' %}active{% endif %}">
+                    <span class="step-index">
+                        {% if step.status == 'completed' %}
+                        <i class="bi bi-check-lg"></i>
+                        {% else %}
+                        {{ forloop.counter }}
+                        {% endif %}
+                    </span>
+                    <div>
+                        <div class="fw-semibold">{{ step.label }}</div>
+                        <small class="text-white-50">{{ step.caption }}</small>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-        </div>
-        {% endif %}
-        <div class="card">
-            <div class="card-header d-flex align-items-center">
-                <i class="fas fa-file-alt icon-header me-2"></i>
-                <span>Providing the Offering</span>
-            </div>
-            <div class="card-body">
-                <form id="metadata-form" method="post">
-                    {% csrf_token %}
-                    
-                    <!-- Metadata fields -->
-                    <h5 class="mb-4">Please Enter the Required Metadata</h5>
-                    <hr>
+        </section>
 
-                    <h4>Offer</h4>
-                    <div class="form-group">
-                        <label for="offer_title" class="form-label">Title </label>
-                        <input type="text" id="offer_title" name="offer_title" class="form-control" required placeholder="My Offer Title" value="{{ form.offer_title.value|default:'' }}">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-rounded {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %} mb-4">
+                <span class="icon-wrap {% if message.tags == 'success' %}bg-success-subtle text-success{% elif message.tags == 'error' %}bg-danger-subtle text-danger{% else %}bg-info-subtle text-info{% endif %}">
+                    {% if message.tags == 'success' %}<i class="bi bi-emoji-smile-fill"></i>
+                    {% elif message.tags == 'error' %}<i class="bi bi-emoji-frown-fill"></i>
+                    {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+                </span>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">{% if message.tags == 'success' %}All set!{% elif message.tags == 'error' %}Heads up{% else %}Quick note{% endif %}</div>
+                    <div>{{ message }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row g-4 align-items-start">
+            <div class="col-xl-4">
+                <div class="card overview-card p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h3>Offer snapshot</h3>
+                        <span class="chip brand"><i class="bi bi-lightning-charge-fill"></i> {{ current_stage_label }}</span>
                     </div>
-                    <div class="form-group">
-                        <label for="offer_description" class="form-label">Description</label>
-                        <input type="text" id="offer_description" name="offer_description" class="form-control" required placeholder="My Offer Description" value="{{ form.offer_description.value|default:'' }}">
-                    </div>
-                    <div class="form-group">
-                        <label for="keywords" class="form-label">Keywords (comma-separated)</label>
-                        <input type="text" id="keywords" name="keywords" class="form-control" required placeholder="JSON, Weather, Helsinki" value="{{ form.keywords.value|default:'' }}">
-                    </div>
-                    <div class="form-group">
-                        <label for="offer_publisher" class="form-label">Publisher</label>
-                        <input type="text" id="offer_publisher" name="offer_publisher" class="form-control" required placeholder="https://vtt.fi/publisher" value="{{ form.offer_publisher.value|default:'' }}">
-                    </div>
-                    <div class="form-group">
-                        <label for="offer_language" class="form-label">Language</label>
-                        <select id="offer_language" name="offer_language" class="form-control" required>
-                            <option value="">Select language</option>
-                            <option value="EN" {% if form.offer_language.value == 'EN' %}selected{% endif %}>EN</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="offer_license" class="form-label">License</label>
-                        <select id="offer_license" name="offer_license" class="form-control" required>
-                            <option value="">Select a license</option>
-                            {% for license in licenses %}
-                            <option value="{{ license.name }}">{{ license.name }}</option>
+                    <p class="text-muted mb-3">{{ offer_snapshot.description }}</p>
+                    <div class="mb-3">
+                        <div class="fw-semibold text-uppercase text-muted small mb-2">Keywords</div>
+                        {% if offer_snapshot.keywords %}
+                            {% for keyword in offer_snapshot.keywords %}
+                                <span class="chip soft"><i class="bi bi-hash"></i>{{ keyword }}</span>
                             {% endfor %}
-                        </select>
+                        {% else %}
+                            <span class="text-muted small">Add a few keywords to help consumers spot your offer.</span>
+                        {% endif %}
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="accessUrl" class="form-label">Offer Access URL</label>
-                        <div class="input-group">
-                            <div class="border p-3 w-100" style="border-radius: 8px; cursor: pointer; background-color: #f8f9fa; display: flex; align-items: center;">
-                                <input type="url" id="accessUrl" name="accessUrl" class="form-control" placeholder="Enter the file URL manually, or click the button to upload a file" value="{{ form.accessUrl.value|default:'' }}">
-                                <button type="button" class="btn btn-outline-danger ms-2" id="removeFileBtn" style="display:{% if form.accessUrl.value %}inline-block{% else %}none{% endif %}">Remove</button>
-                                <input type="file" id="fileInput" name="file" multiple style="display:none;">
-                                <button type="button" class="btn btn-outline-primary ms-2" id="fileUploadBtn">
-                                    <i class="fas fa-upload"></i> Upload File
-                                </button>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="p-3 rounded-4 border border-light-subtle bg-light">
+                                <div class="text-uppercase text-muted small">Publishing to</div>
+                                <div class="fw-semibold">{{ data_space_connector_url }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 border border-light-subtle">
+                                <div class="text-uppercase text-muted small">Access opens</div>
+                                <div class="fw-semibold">{{ offer_snapshot.start|default:"—" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 border border-light-subtle">
+                                <div class="text-uppercase text-muted small">Access ends</div>
+                                <div class="fw-semibold">{{ offer_snapshot.end|default:"—" }}</div>
                             </div>
                         </div>
                     </div>
-                    
-                        <!-- Authentication for Access URL -->
-                        <div class="form-group mt-3">
-                            <label for="auth_type" class="form-label">Authentication</label>
-                            <select id="auth_type" name="auth_type" class="form-control">
-                                <option value="none">None</option>
-                                <option value="basic">Basic (username/password)</option>
-                                <option value="bearer">Bearer (token)</option>
-                            </select>
+                </div>
+
+                <div class="card overview-card p-4 mb-4">
+                    <h3 class="mb-3">Friendly hints</h3>
+                    <ul class="list-unstyled list-hint text-muted mb-0">
+                        <li><i class="bi bi-stars text-primary me-2"></i> Keep titles playful but specific — it helps consumers trust the content faster.</li>
+                        <li><i class="bi bi-emoji-smile text-primary me-2"></i> Plain-language descriptions beat jargon every time.</li>
+                        <li><i class="bi bi-geo-alt text-primary me-2"></i> Offer URL unavailable? Upload a JSON sample; we’ll host it for you.</li>
+                    </ul>
+                </div>
+
+                <div class="card overview-card p-4">
+                    <h3 class="mb-3">Quick actions</h3>
+                    <table class="table table-borderless align-middle table-hint mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted small">Monitor</td>
+                                <td><span class="chip neutral"><i class="bi bi-graph-up-arrow"></i> Coming soon</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted small">Test access</td>
+                                <td><span class="chip neutral"><i class="bi bi-clock-history"></i> Built-in tester below</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted small">Share</td>
+                                <td>
+                                    {% if data_space_consumer_url %}
+                                    <a class="btn btn-outline-rounded btn-sm" href="{{ data_space_consumer_url }}" target="_blank" rel="noopener noreferrer">
+                                        Explore Consume
+                                    </a>
+                                    {% else %}
+                                    <span class="chip soft"><i class="bi bi-info-circle"></i> Consumer URL not configured</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-xl-8">
+                <div class="card form-card p-4 p-xl-5">
+                    <div class="d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap">
+                        <div>
+                            <div class="text-uppercase text-muted small fw-semibold">Step 2 · Describe</div>
+                            <h2 class="fw-bold mb-1">Let’s describe your brilliant offer</h2>
+                            <p class="helper-text mb-0">We’ll use this to publish a contract-ready resource to the connector.</p>
                         </div>
-                        <div class="form-group" id="basicAuthFields" style="display:none;">
-                            <label class="form-label">Basic Authentication</label>
-                            <input type="text" class="form-control mb-2" id="auth_username" name="auth_username" placeholder="Username">
-                            <input type="password" class="form-control" id="auth_password" name="auth_password" placeholder="Password">
-                        </div>
-                        <div class="form-group" id="bearerAuthField" style="display:none;">
-                            <label class="form-label">Bearer Token</label>
-                            <input type="password" class="form-control" id="auth_token" name="auth_token" placeholder="Token">
-                        </div>
-                        <div class="form-group mt-2">
-                            <button type="button" id="testAccessBtn" class="btn btn-secondary">Test Access</button>
-                            <div id="testAccessResult" class="ms-3" style="display:inline-block; min-width:300px;"></div>
-                        </div>
-                        <div id="testAccessDetailsWrapper" class="mt-2" style="display:none;">
-                            <a href="#" id="testAccessToggleDetails" class="small">Show details</a>
-                            <pre id="testAccessDetails" class="mt-2 small text-muted" style="display:none; white-space:pre-wrap; background:#f8f9fa; padding:8px; border-radius:6px;">{}</pre>
-                        </div>
-                    
-                    <hr>
-                    <h4>Data Access Rules</h4>
-                    <div class="form-group">
-                        <label for="start" class="form-label">Access Start Date</label>
-                        <input type="datetime-local" id="start" name="start" class="form-control" required value="{{ form.start.value|default:'' }}">
+                        <div class="working-pill"><span class="spinner-border spinner-border-sm"></span> We’ll keep things running smoothly</div>
                     </div>
-                    <div class="form-group">
-                        <label for="end" class="form-label">Access End Date</label>
-                        <input type="datetime-local" id="end" name="end" class="form-control" required value="{{ form.end.value|default:'' }}">
+
+                    <form id="metadata-form" method="post" novalidate>
+                        {% csrf_token %}
+
+                        <section class="section-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <div>
+                                    <div class="section-heading mb-1">Offer basics</div>
+                                    <p class="helper-text mb-0">Tell future consumers what this offer unlocks.</p>
+                                </div>
+                                <span class="chip brand"><i class="bi bi-pencil-square"></i> Create + Describe</span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="offer_title" class="form-label fw-semibold">Offer title</label>
+                                <input type="text" id="offer_title" name="offer_title" class="form-control" placeholder="e.g. Helsinki hourly weather observations" value="{{ form.offer_title.value|default:'' }}" required>
+                                <div class="helper-text mt-1">Aim for a clear statement in under 60 characters.</div>
+                                {% for error in form.offer_title.errors %}
+                                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="offer_description" class="form-label fw-semibold">Short description</label>
+                                <textarea id="offer_description" name="offer_description" class="form-control" rows="3" placeholder="A playful summary that helps people decide fast." required>{{ form.offer_description.value|default:'' }}</textarea>
+                                <div class="helper-text mt-1">Explain the use-case in friendly language, in one or two sentences.</div>
+                                {% for error in form.offer_description.errors %}
+                                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="keywords" class="form-label fw-semibold">Keywords</label>
+                                <input type="text" id="keywords" name="keywords" class="form-control" placeholder="weather, climate, helsinki" value="{{ form.keywords.value|default:'' }}" required>
+                                <div class="helper-text mt-1">Comma-separated list. We’ll turn them into discovery chips automatically.</div>
+                                {% for error in form.keywords.errors %}
+                                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-lg-6">
+                                    <label for="offer_publisher" class="form-label fw-semibold">Publisher URL</label>
+                                    <input type="url" id="offer_publisher" name="offer_publisher" class="form-control" placeholder="https://..." value="{{ form.offer_publisher.value|default:'' }}" required>
+                                    <div class="helper-text mt-1">Link to your organisation or product home.</div>
+                                    {% for error in form.offer_publisher.errors %}
+                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offer_language" class="form-label fw-semibold">Language</label>
+                                    <input type="text" id="offer_language" name="offer_language" class="form-control" placeholder="EN" value="{{ form.offer_language.value|default:'' }}" required>
+                                    {% for error in form.offer_language.errors %}
+                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offer_license" class="form-label fw-semibold">License</label>
+                                    <select id="offer_license" name="offer_license" class="form-select" required>
+                                        <option value="">Choose...</option>
+                                        {% for value,label in license_choices %}
+                                            <option value="{{ value }}" {% if form.offer_license.value == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% for error in form.offer_license.errors %}
+                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="section-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <div>
+                                    <div class="section-heading mb-1">Artifact access</div>
+                                    <p class="helper-text mb-0">Point to your dataset or upload a sample we can host for you.</p>
+                                </div>
+                                <span class="chip brand"><i class="bi bi-cloud-arrow-up"></i> Publish-ready</span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="accessUrl" class="form-label fw-semibold">Access URL</label>
+                                <div class="input-group">
+                                    <input type="url" id="accessUrl" name="accessUrl" class="form-control" placeholder="https://..." value="{{ form.accessUrl.value|default:'' }}" required>
+                                    <button type="button" id="fileUploadBtn" class="btn btn-outline-rounded"><i class="bi bi-file-earmark-plus"></i> Upload JSON</button>
+                                    <button type="button" id="removeFileBtn" class="btn btn-outline-danger" style="display:none;"><i class="bi bi-x-circle"></i></button>
+                                    <input type="file" id="fileInput" accept=".json" hidden>
+                                </div>
+                                <div id="fileUploadStatus" class="helper-text mt-2"></div>
+                                {% for error in form.accessUrl.errors %}
+                                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-lg-6">
+                                    <label for="auth_type" class="form-label fw-semibold">Authentication</label>
+                                    <select id="auth_type" name="auth_type" class="form-select">
+                                        <option value="none" {% if form.auth_type.value == 'none' %}selected{% endif %}>None</option>
+                                        <option value="basic" {% if form.auth_type.value == 'basic' %}selected{% endif %}>Basic (user + password)</option>
+                                        <option value="bearer" {% if form.auth_type.value == 'bearer' %}selected{% endif %}>Bearer token</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-6 d-flex align-items-end">
+                                    <button type="button" id="testAccessBtn" class="btn btn-outline-rounded w-100"><i class="bi bi-plug"></i> Test access URL</button>
+                                </div>
+                            </div>
+
+                            <div id="basicAuthFields" class="row g-3 mt-1" style="display:none;">
+                                <div class="col-md-6">
+                                    <label for="auth_username" class="form-label fw-semibold">Username</label>
+                                    <input type="text" id="auth_username" name="auth_username" class="form-control" value="{{ form.auth_username.value|default:'' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="auth_password" class="form-label fw-semibold">Password</label>
+                                    <input type="password" id="auth_password" name="auth_password" class="form-control" value="{{ form.auth_password.value|default:'' }}">
+                                </div>
+                            </div>
+
+                            <div id="bearerAuthField" class="mt-3" style="display:none;">
+                                <label for="auth_token" class="form-label fw-semibold">Bearer token</label>
+                                <input type="password" id="auth_token" name="auth_token" class="form-control" value="{{ form.auth_token.value|default:'' }}">
+                            </div>
+
+                            <div class="mt-3">
+                                <div id="testAccessResult" class="helper-text"></div>
+                                <div id="testAccessDetailsWrapper" class="mt-2" style="display:none;">
+                                    <a href="#" id="testAccessToggleDetails" class="small">Show details</a>
+                                    <pre id="testAccessDetails" class="mt-2 p-3 bg-light border rounded" style="display:none;"></pre>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="section-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <div>
+                                    <div class="section-heading mb-1">Contract window</div>
+                                    <p class="helper-text mb-0">Choose when the offer is usable. We’ll wrap it in a friendly IDS policy for you.</p>
+                                </div>
+                                <span class="chip brand"><i class="bi bi-clipboard-check"></i> Auto-contract</span>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="start" class="form-label fw-semibold">Access start</label>
+                                    <input type="datetime-local" id="start" name="start" class="form-control" value="{{ form.start.value|default:'' }}" required>
+                                    {% for error in form.start.errors %}
+                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="end" class="form-label fw-semibold">Access end</label>
+                                    <input type="datetime-local" id="end" name="end" class="form-control" value="{{ form.end.value|default:'' }}" required>
+                                    {% for error in form.end.errors %}
+                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <label for="access_policy" class="form-label fw-semibold">Policy template</label>
+                                <select id="access_policy" name="access_policy" class="form-select" required>
+                                    <option value="">Pick a policy type</option>
+                                    <option value="between_dates" {% if form.access_policy.value == 'between_dates' %}selected{% endif %}>Access allowed between start and end dates</option>
+                                </select>
+                                <input type="hidden" id="policy_value" name="value" value="{{ form.value.value|default:'' }}">
+                                {% for error in form.access_policy.errors %}
+                                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </section>
+
+                        <div class="d-flex gap-3 flex-wrap align-items-center">
+                            <button type="submit" class="btn btn-primary-rounded d-flex align-items-center gap-2"><i class="bi bi-rocket-takeoff"></i>Publish to connector</button>
+                            {% if data_space_consumer_url %}
+                            <a class="btn btn-outline-rounded d-flex align-items-center gap-2" href="{{ data_space_consumer_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-compass"></i>Jump to consume</a>
+                            {% endif %}
+                            <span class="helper-text">Need a breather? You can safely come back later — your edits stay on this tab.</span>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card form-card mt-4 p-4 p-xl-5">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div>
+                            <h3 class="fw-semibold mb-1">Try it via curl</h3>
+                            <p class="helper-text mb-0">Copy this snippet to automate a quick health check after publishing.</p>
+                        </div>
+                        <span class="chip neutral"><i class="bi bi-terminal"></i> Copy-friendly</span>
                     </div>
-                    <div class="form-group">
-                        <label for="access_policy" class="form-label">Access Policy</label>
-                        <select id="access_policy" name="access_policy" class="form-control" required>
-                            <option value="">Select access policy</option>
-                            <option value="between_dates" {% if form.access_policy.value == 'between_dates' %}selected{% endif %}>Provide access between dates</option>
-                        </select>
-                        <input type="hidden" id="policy_value" name="value" value="{{ form.value.value|default:'' }}">
+                    <div class="code-block" id="publishSnippet">
+                        <button type="button" id="copySnippetBtn"><i class="bi bi-clipboard"></i> Copy</button>
+                        curl -H "Authorization: Bearer &lt;token&gt;" \
+  "{{ offer_snapshot.access_url|default:'https://example.com/dataset.json' }}"
                     </div>
-                    <hr>
-                    <div class="d-flex flex-wrap gap-2 mt-3">
-                        <button type="submit" class="btn btn-primary">Provide the Offering</button>
-                        {% if data_space_consumer_url %}
-                        <a class="btn btn-outline-secondary" href="{{ data_space_consumer_url }}" target="_blank" rel="noopener noreferrer">
-                            Open Consume
-                        </a>
-                        {% endif %}
-                    </div>
-                </form>
+                    <p class="helper-text mt-3 mb-0">Swap in a DAT from DAPS and you’re ready to monitor availability.</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const accessPolicySelect = document.getElementById("access_policy");
-        const policyValueInput = document.getElementById("policy_value");
-        const startDateInput = document.getElementById("start");
-        const endDateInput = document.getElementById("end");
-
-        function updatePolicyValue() {
-            if (accessPolicySelect.value === "between_dates") {
-                const startDate = startDateInput.value;
-                const endDate = endDateInput.value;
-                if (startDate && endDate) {
-                    policyValueInput.value = JSON.stringify({
-                        type: "between_dates",
-                        start: startDate,
-                        end: endDate
-                    });
-                }
-            } else {
-                policyValueInput.value = "";
-            }
-        }
-
-        // Update policy value when any of the inputs change
-        startDateInput.addEventListener("change", updatePolicyValue);
-        endDateInput.addEventListener("change", updatePolicyValue);
-        accessPolicySelect.addEventListener("change", function () {
-            if (accessPolicySelect.value === "between_dates") {
-                // Construct policy value from start and end dates
-                const startDate = document.getElementById("start").value;
-                const endDate = document.getElementById("end").value;
-                if (startDate && endDate) {
-                    policyValueInput.value = JSON.stringify({
-                        type: "between_dates",
-                        start: startDate,
-                        end: endDate
-                    });
-                }
-            } else {
-                policyValueInput.value = "";
-            }
-        });
-    });
-    </script>
-
-    <!-- Copy URL Script -->
-    <script>
-        document.getElementById('copyUrlBtn').addEventListener('click', () => {
-            const urlInput = document.getElementById('dataSpaceUrl');
-            urlInput.select();
-            document.execCommand('copy');
-            alert('URL copied to clipboard!');
-        });
-    </script>
-
-    <script>
-        // Toggle auth fields
-        document.addEventListener('DOMContentLoaded', function () {
-            const authType = document.getElementById('auth_type');
-            const basicFields = document.getElementById('basicAuthFields');
-            const bearerField = document.getElementById('bearerAuthField');
-            const testBtn = document.getElementById('testAccessBtn');
-            const resultSpan = document.getElementById('testAccessResult');
-
-            function updateAuthUI() {
-                const v = authType.value;
-                basicFields.style.display = v === 'basic' ? 'block' : 'none';
-                bearerField.style.display = v === 'bearer' ? 'block' : 'none';
-            }
-
-            authType.addEventListener('change', updateAuthUI);
-            updateAuthUI();
-
-            function getCookie(name) {
-                const value = `; ${document.cookie}`;
-                const parts = value.split(`; ${name}=`);
-                if (parts.length === 2) return parts.pop().split(';').shift();
-            }
-
-            testBtn.addEventListener('click', function () {
-                const resultDiv = document.getElementById('testAccessResult');
-                const detailsWrapper = document.getElementById('testAccessDetailsWrapper');
-                const detailsPre = document.getElementById('testAccessDetails');
-                const toggleLink = document.getElementById('testAccessToggleDetails');
-                resultDiv.innerHTML = '<div class="d-inline-flex align-items-center text-muted"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Testing...</div>';
-                detailsWrapper.style.display = 'none';
-                detailsPre.style.display = 'none';
-                // Build query params and call the endpoint with GET to avoid servers that reject POST
-                const accessUrlVal = document.getElementById('accessUrl').value;
-                const params = new URLSearchParams();
-                params.append('accessUrl', accessUrlVal);
-                params.append('auth_type', document.getElementById('auth_type').value || '');
-                params.append('auth_username', document.getElementById('auth_username') ? document.getElementById('auth_username').value : '');
-                params.append('auth_password', document.getElementById('auth_password') ? document.getElementById('auth_password').value : '');
-                params.append('auth_token', document.getElementById('auth_token') ? document.getElementById('auth_token').value : '');
-
-                fetch('{% url "provide:test_access" %}?'+params.toString(), {
-                    method: 'GET',
-                    credentials: 'same-origin'
-                }).then(async r => {
-                    let json = null; let text = null;
-                    try { json = await r.clone().json(); } catch(e){ json = null; }
-                    try { text = await r.clone().text(); } catch(e){ text = null; }
-                    const status = r.status;
-                    // normalize message and reason
-                    const code = (json && (json.status_code || json.code)) || status || '—';
-                    const reason = (json && (json.reason || json.message || json.error)) || r.statusText || '';
-                    const detailsText = JSON.stringify(json, null, 2) || text || '';
-                    if (r.ok && json && json.status === 'success') {
-                        // success alert with badge and reason
-                        resultDiv.innerHTML = `
-                            <div class="alert alert-success d-flex align-items-start p-2 mb-0" role="alert">
-                                <span class="badge rounded-pill bg-success me-3" style="min-width:48px;text-align:center;font-weight:600;">${code}</span>
-                                <div>
-                                    <h6 class="mb-1"><i class="fas fa-check-circle text-success me-1"></i>Accessible <small class="text-muted">${reason}</small></h6>
-                                    <div class="small text-muted">The URL responded with status ${code}.</div>
-                                </div>
-                            </div>
-                        `;
-                        detailsPre.textContent = detailsText;
-                        detailsWrapper.style.display = detailsPre.textContent ? 'block' : 'none';
-                    } else {
-                        // failure alert with badge and reason
-                        resultDiv.innerHTML = `
-                            <div class="alert alert-danger d-flex align-items-start p-2 mb-0" role="alert">
-                                <span class="badge rounded-pill bg-danger me-3" style="min-width:48px;text-align:center;font-weight:600;">${code}</span>
-                                <div>
-                                    <h6 class="mb-1"><i class="fas fa-times-circle text-danger me-1"></i>Not accessible <small class="text-muted">${reason}</small></h6>
-                                    <div class="small text-muted">${reason || 'The request failed. See details for more.'}</div>
-                                </div>
-                            </div>
-                        `;
-                        detailsPre.textContent = detailsText;
-                        detailsWrapper.style.display = detailsPre.textContent ? 'block' : 'none';
-                    }
-                    // toggle details link
-                    toggleLink.onclick = function (ev) {
-                        ev.preventDefault();
-                        if (detailsPre.style.display === 'none') { detailsPre.style.display = 'block'; toggleLink.textContent = 'Hide details'; }
-                        else { detailsPre.style.display = 'none'; toggleLink.textContent = 'Show details'; }
-                    };
-                }).catch(err => {
-                    resultDiv.innerHTML = `<div class="alert alert-warning p-2 mb-0" role="alert"><span class="badge bg-warning text-dark me-2">!</span><strong>Error</strong> — ${err.message}</div>`;
-                });
-            });
-        });
-    </script>
-
-    <!-- File upload and removal functionality -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const accessUrlField = document.getElementById("accessUrl");
+            const basicFields = document.getElementById("basicAuthFields");
+            const bearerField = document.getElementById("bearerAuthField");
+            const authType = document.getElementById("auth_type");
             const fileInput = document.getElementById("fileInput");
-            const removeFileBtn = document.getElementById("removeFileBtn");
             const fileUploadBtn = document.getElementById("fileUploadBtn");
+            const removeFileBtn = document.getElementById("removeFileBtn");
+            const accessUrlField = document.getElementById("accessUrl");
+            const statusLabel = document.getElementById("fileUploadStatus");
+            const testBtn = document.getElementById("testAccessBtn");
+            const resultDiv = document.getElementById("testAccessResult");
+            const detailsWrapper = document.getElementById("testAccessDetailsWrapper");
+            const detailsPre = document.getElementById("testAccessDetails");
+            const toggleLink = document.getElementById("testAccessToggleDetails");
+            const copySnippetBtn = document.getElementById("copySnippetBtn");
+            const snippetBlock = document.getElementById("publishSnippet");
 
-            // Handle manual URL input
-            accessUrlField.addEventListener("input", () => {
-                if (accessUrlField.value.trim() !== "") {
-                    removeFileBtn.style.display = "none"; // Hide remove button
-                    fileUploadBtn.style.display = "inline-block"; // Show upload button
-                }
-            });
+            function updateAuthUI() {
+                const type = authType.value;
+                basicFields.style.display = type === "basic" ? "flex" : "none";
+                bearerField.style.display = type === "bearer" ? "block" : "none";
+            }
+            updateAuthUI();
+            authType.addEventListener("change", updateAuthUI);
 
-            // Handle file selection from input
-            fileInput.addEventListener("change", () => {
-                handleFileUpload(fileInput.files);
-            });
-
-            // Trigger file input when the upload button is clicked
             fileUploadBtn.addEventListener("click", () => fileInput.click());
+            fileInput.addEventListener("change", () => handleFileUpload(fileInput.files));
+            removeFileBtn.addEventListener("click", () => resetUploadState());
 
-            // Store the OfferAccess UUID for the current provider action
-            let offerAccessUuid = null;
-
-            // Handle file upload logic
-            function handleFileUpload(file) {
-                if (!file || file.length === 0) return;
-
+            function handleFileUpload(files) {
+                if (!files || !files.length) { return; }
                 const formData = new FormData();
-                for (let i = 0; i < file.length; i++) {
-                    formData.append("file", file[i]);
+                for (const file of files) {
+                    formData.append("file", file);
                 }
-                // If we already have an OfferAccess UUID, send it with the upload
-                if (offerAccessUuid) {
-                    formData.append("offer_access_uuid", offerAccessUuid);
-                }
+                resultDiv.innerHTML = '';
+                statusLabel.innerHTML = '<span class="working-pill"><span class="spinner-border spinner-border-sm"></span> Uploading…</span>';
 
-                fetch("/upload/", {
+                const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+                fetch("{% url 'provide:file_upload' %}", {
                     method: "POST",
-                    body: formData,
-                    headers: { "X-CSRFToken": "{{ csrf_token }}" }
+                    headers: {"X-CSRFToken": csrfToken},
+                    body: formData
                 })
-                .then(response => response.json())
+                .then(resp => resp.json())
                 .then(data => {
-                    if (data.offer_access_url) {
-                        // Set the accessUrl field to the Offer Access URL
-                        accessUrlField.value = data.offer_access_url;
-                        accessUrlField.readOnly = true;
-                        removeFileBtn.style.display = "inline-block";
-                        fileUploadBtn.style.display = "inline-block";
-                        fileInput.value = '';
-                        // Store the OfferAccess UUID for future uploads in this action
-                        if (data.offer_access_uuid) {
-                            offerAccessUuid = data.offer_access_uuid;
-                        }
-                        // Show a success message with the Offer Access URL and file URLs
-                        let msg = `Files uploaded successfully!<br>`;
-                        msg += `<strong>Offer Access URL:</strong> <a href='${data.offer_access_url}' target='_blank'>${data.offer_access_url}</a><br>`;
-                        if (data.file_urls) {
-                            data.file_urls.forEach((url, idx) => {
-                                msg += `<strong>Raw File URL ${idx+1}:</strong> <a href='${url}' target='_blank'>${url}</a><br>`;
-                            });
-                        }
-                        showUploadMessage(msg, true, true);
-                    } else {
-                        showUploadMessage('Upload failed: ' + (data.error || 'Unknown error'), false, false);
+                    if (data.error) {
+                        statusLabel.innerHTML = `<span class="text-danger"><i class="bi bi-emoji-frown"></i> ${data.error}</span>`;
+                        resetUploadState(false);
+                        return;
                     }
+                    accessUrlField.value = data.offer_access_url;
+                    statusLabel.innerHTML = `<span class="text-success"><i class="bi bi-emoji-smile"></i> Uploaded! ${data.file_urls.length} file(s) ready.</span>`;
+                    removeFileBtn.style.display = "inline-flex";
                 })
-                .catch(error => {
-                    showUploadMessage('Error: ' + error.message, false, false);
+                .catch(err => {
+                    statusLabel.innerHTML = `<span class="text-danger"><i class="bi bi-emoji-dizzy"></i> Upload failed: ${err.message}</span>`;
+                    resetUploadState(false);
                 });
+            }
 
-                // Helper to show upload result message
-                function showUploadMessage(msg, success, append) {
-                    let alertDiv = document.getElementById('uploadResultMsg');
-                    if (!alertDiv) {
-                        alertDiv = document.createElement('div');
-                        alertDiv.id = 'uploadResultMsg';
-                        accessUrlField.parentNode.appendChild(alertDiv);
-                    }
-                    if (append && success) {
-                        alertDiv.innerHTML += `<div class='alert alert-success mt-2'>${msg}</div>`;
-                    } else {
-                        alertDiv.innerHTML = `<div class='alert alert-${success ? 'success' : 'danger'} mt-2'>${msg}</div>`;
-                    }
+            function resetUploadState(clearUrl = true) {
+                fileInput.value = "";
+                removeFileBtn.style.display = "none";
+                if (clearUrl) {
+                    accessUrlField.value = "";
                 }
             }
 
-            // Remove the uploaded file and reset the input for a new file upload
-            removeFileBtn.addEventListener("click", () => {
-                accessUrlField.value = ''; // Clear the URL field
-                accessUrlField.readOnly = false; // Make the field editable again
-                removeFileBtn.style.display = "none"; // Hide the "Remove File" button
-                fileUploadBtn.style.display = "inline-block"; // Show the upload button again
-                fileInput.value = ''; // Reset the file input to allow re-uploading
-            });
+            function getAuthPayload() {
+                const type = authType.value;
+                if (type === "basic") {
+                    return {
+                        auth_type: "basic",
+                        auth_username: document.getElementById("auth_username").value,
+                        auth_password: document.getElementById("auth_password").value
+                    };
+                }
+                if (type === "bearer") {
+                    return {
+                        auth_type: "bearer",
+                        auth_token: document.getElementById("auth_token").value
+                    };
+                }
+                return { auth_type: "none" };
+            }
+
+            function csrftoken() {
+                const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+                return tokenInput ? tokenInput.value : '';
+            }
+
+            if (testBtn) {
+                testBtn.addEventListener("click", () => {
+                    const url = accessUrlField.value;
+                    if (!url) {
+                        resultDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> Add an access URL first.</span>';
+                        return;
+                    }
+                    resultDiv.innerHTML = '<span class="working-pill"><span class="spinner-border spinner-border-sm"></span> Checking connectivity…</span>';
+                    detailsWrapper.style.display = "none";
+                    detailsPre.style.display = "none";
+
+                    const formPayload = new URLSearchParams({
+                        accessUrl: url,
+                        ...getAuthPayload()
+                    });
+
+                    fetch("{% url 'provide:test_access' %}", {
+                        method: "POST",
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrftoken()
+                        },
+                        body: formPayload.toString()
+                    })
+                    .then(resp => resp.json())
+                    .then(data => {
+                        if (data.status === "success") {
+                            resultDiv.innerHTML = '<span class="text-success fw-semibold"><i class="bi bi-emoji-smile"></i> Looking good! The URL responded happily.</span>';
+                        } else {
+                            const errorMessage = data.error || data.text || data.reason || "We could not reach the URL.";
+                            resultDiv.innerHTML = `<span class="text-danger fw-semibold"><i class="bi bi-emoji-dizzy"></i> Hmm, something felt off. ${errorMessage}</span>`;
+                        }
+                        if (data.text || data.data || data.error) {
+                            detailsWrapper.style.display = "block";
+                            detailsPre.textContent = JSON.stringify(data, null, 2);
+                            detailsPre.style.display = "none";
+                            toggleLink.textContent = "Show details";
+                        }
+                    })
+                    .catch(err => {
+                        resultDiv.innerHTML = `<span class="text-danger fw-semibold"><i class="bi bi-emoji-dizzy"></i> Request failed: ${err.message}</span>`;
+                    });
+                });
+
+                toggleLink.addEventListener("click", e => {
+                    e.preventDefault();
+                    const isHidden = detailsPre.style.display === "none";
+                    detailsPre.style.display = isHidden ? "block" : "none";
+                    toggleLink.textContent = isHidden ? "Hide details" : "Show details";
+                });
+            }
+
+            if (copySnippetBtn) {
+                copySnippetBtn.addEventListener("click", () => {
+                    const text = snippetBlock.textContent.trim();
+                    navigator.clipboard.writeText(text).then(() => {
+                        copySnippetBtn.innerHTML = '<i class="bi bi-clipboard-check"></i> Copied!';
+                        setTimeout(() => copySnippetBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy', 2200);
+                    });
+                });
+            }
         });
     </script>
-
 </body>
 </html>

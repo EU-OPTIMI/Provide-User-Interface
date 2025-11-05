@@ -309,12 +309,61 @@ def provide_offer(request):
         form = UploadMetadataForm(initial=initial_data, license_choices=license_choices, request=request)
         logger.debug("Loaded initial provider form data", extra={'session_keys': list(request.session.keys())})
 
+    def field_value(field_name):
+        try:
+            return form[field_name].value()
+        except KeyError:
+            return ''
+
+    keywords_raw = field_value('keywords') or ''
+    keyword_list = [k.strip() for k in keywords_raw.split(',') if k.strip()]
+    license_value = field_value('offer_license')
+    license_label = next((label for value, label in license_choices if value == license_value), license_value or "Select a license")
+
+    offer_snapshot = {
+        'title': field_value('offer_title') or 'Untitled offer',
+        'description': field_value('offer_description') or 'Add a friendly description to help consumers understand what they get.',
+        'keywords': keyword_list,
+        'publisher': field_value('offer_publisher'),
+        'language': field_value('offer_language'),
+        'license': license_label,
+        'access_url': field_value('accessUrl'),
+        'start': field_value('start'),
+        'end': field_value('end'),
+    }
+
+    stage_sequence = [
+        ("Create", "Sketch the idea"),
+        ("Describe", "Add metadata & policy"),
+        ("Publish", "Send to the connector"),
+        ("Monitor", "Track usage & reassure"),
+    ]
+    current_stage_label = "Describe"
+    current_index = next((idx for idx, (label, _) in enumerate(stage_sequence) if label == current_stage_label), 1)
+    progress_steps = []
+    for idx, (label, caption) in enumerate(stage_sequence):
+        if idx < current_index:
+            status = 'completed'
+        elif idx == current_index:
+            status = 'active'
+        else:
+            status = 'upcoming'
+        progress_steps.append({
+            'label': label,
+            'caption': caption,
+            'status': status
+        })
+
     return render(request, 'provide/provide_offer.html', {
         'form': form,
         'licenses': License.objects.all(),
         'data_space_connector_url': connector_url,
         'data_space_consumer_url': consumer_url,
         'debug_metadata': initial_data,  # Pass to template for debugging
+        'offer_snapshot': offer_snapshot,
+        'progress_steps': progress_steps,
+        'current_stage_label': current_stage_label,
+        'license_choices': license_choices,
     })
 
 # in provide/views.py
