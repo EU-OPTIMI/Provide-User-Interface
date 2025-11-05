@@ -32,6 +32,27 @@ UPLOAD_DIR = 'uploads'
 
 
 # Helper Functions
+def truncate_to_minutes(date_str):
+    """Return an ISO-8601 string trimmed to minute precision."""
+    if not date_str:
+        return date_str
+    from datetime import datetime
+    normalized = date_str.strip()
+    try:
+        normalized = normalized.replace('Z', '+00:00')
+        dt = datetime.fromisoformat(normalized)
+    except ValueError:
+        # allow fallback format without seconds
+        try:
+            dt = datetime.strptime(normalized, "%Y-%m-%dT%H:%M")
+        except ValueError:
+            return date_str
+    trimmed = dt.replace(second=0, microsecond=0)
+    if trimmed.tzinfo:
+        return trimmed.isoformat(timespec='minutes')
+    return trimmed.strftime("%Y-%m-%dT%H:%M")
+
+
 def get_license_choices():
     """Retrieve license choices for the form."""
     licenses = License.objects.all()
@@ -109,6 +130,8 @@ def handle_metadata(request):
                 start_date = today.strftime('%Y-%m-%dT%H:%M')
             if not end_date:
                 end_date = (today + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M')
+            start_date = truncate_to_minutes(start_date)
+            end_date = truncate_to_minutes(end_date)
             
             # Create policy value based on the dates
             policy_value = {
