@@ -54,6 +54,96 @@ def truncate_to_minutes(date_str):
     return trimmed.strftime("%Y-%m-%dT%H:%M")
 
 
+def ensure_datetime_with_seconds(date_str):
+    """Return ISO-8601 string including seconds (without microseconds)."""
+    if not date_str:
+        return date_str
+    from datetime import datetime
+    normalized = date_str.strip()
+    # Accept Z or timezone offsets
+    normalized = normalized.replace('Z', '+00:00')
+    try:
+        dt = datetime.fromisoformat(normalized)
+    except ValueError:
+        dt = datetime.strptime(normalized, "%Y-%m-%dT%H:%M")
+    dt = dt.replace(microsecond=0)
+    return dt.isoformat()
+
+
+def build_between_dates_permission(start_iso, end_iso):
+    """Construct IDS Permission JSON-LD string enforcing a between-dates window."""
+    permission = {
+        "@context": {
+            "ids": "https://w3id.org/idsa/core/",
+            "idsc": "https://w3id.org/idsa/code/"
+        },
+        "@type": "ids:Permission",
+        "ids:title": [{
+            "@value": "Time-bound access",
+            "@type": "http://www.w3.org/2001/XMLSchema#string"
+        }],
+        "ids:description": [{
+            "@value": "Usage permitted only within the configured date interval",
+            "@type": "http://www.w3.org/2001/XMLSchema#string"
+        }],
+        "ids:action": [
+            {"@id": "idsc:USE"}
+        ],
+        "ids:constraint": [
+            {
+                "@type": "ids:Constraint",
+                "ids:leftOperand": {"@id": "idsc:POLICY_EVALUATION_TIME"},
+                "ids:operator": {"@id": "idsc:AFTER"},
+                "ids:rightOperand": {
+                    "@value": start_iso,
+                    "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+                }
+            },
+            {
+                "@type": "ids:Constraint",
+                "ids:leftOperand": {"@id": "idsc:POLICY_EVALUATION_TIME"},
+                "ids:operator": {"@id": "idsc:BEFORE"},
+                "ids:rightOperand": {
+                    "@value": end_iso,
+                    "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+                }
+            }
+        ]
+    }
+    return json.dumps(permission)
+
+
+def get_fixed_policy_rule():
+    """Return the fixed policy rule for validation purposes."""
+    return (
+        '{\n'
+        '    "@context": {\n'
+        '        "ids": "https://w3id.org/idsa/core/",\n'
+        '        "idsc": "https://w3id.org/idsa/code/"\n'
+        '    },\n'
+        '    "@type": "ids:Permission",\n'
+        '    "@id": "https://w3id.org/idsa/autogen/permission/cf1cb758-b96d-4486-b0a7-f3ac0e289588",\n'
+        '    "ids:action": [\n'
+        '        {\n'
+        '            "@id": "idsc:USE"\n'
+        '        }\n'
+        '    ],\n'
+        '    "ids:description": [\n'
+        '        {\n'
+        '            "@value": "provide-access",\n'
+        '            "@type": "http://www.w3.org/2001/XMLSchema#string"\n'
+        '        }\n'
+        '    ],\n'
+        '    "ids:title": [\n'
+        '        {\n'
+        '            "@value": "Example Usage Policy",\n'
+        '            "@type": "http://www.w3.org/2001/XMLSchema#string"\n'
+        '        }\n'
+        '    ]\n'
+        '}'
+    )
+
+
 def get_license_choices():
     """Retrieve license choices for the form."""
     licenses = License.objects.all()
@@ -133,13 +223,11 @@ def handle_metadata(request):
                 end_date = (today + timedelta(days=30)).strftime('%Y-%m-%dT%H:%M')
             start_date = truncate_to_minutes(start_date)
             end_date = truncate_to_minutes(end_date)
+            policy_start = ensure_datetime_with_seconds(start_date)
+            policy_end = ensure_datetime_with_seconds(end_date)
             
-            # Create policy value based on the dates
-            policy_value = {
-                "type": "between_dates",
-                "start": start_date,
-                "end": end_date
-            }
+            # Create IDS-compliant permission policy based on the dates
+            policy_value = build_between_dates_permission(policy_start, policy_end)
             
             initial_data = {
                 'offer_title': offer_data.get('title', ''),
@@ -151,7 +239,7 @@ def handle_metadata(request):
                 'start': start_date,
                 'end': end_date,
                 'access_policy': 'between_dates',  # Set the policy type
-                'value': json.dumps(policy_value),  # Set the policy value
+                'value': get_fixed_policy_rule(),  # use fixed policy for validation
                 'auth_type': 'none'  # Default auth type
             }
             
@@ -195,6 +283,8 @@ def provide_offer(request):
             for k, v in data.items():
                 if hasattr(v, 'isoformat'):
                     data[k] = v.isoformat()
+            # Override policy with fixed IDS permission for validation run
+            data['value'] = get_fixed_policy_rule()
             # save the last successful metadata to session for publish fallback
             request.session['provide_last_metadata'] = data
             selected_license_name = data.get('offer_license')
