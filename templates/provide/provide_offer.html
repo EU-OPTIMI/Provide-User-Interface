@@ -304,6 +304,18 @@
                                 <div class="fw-semibold">{{ offer_snapshot.end|default:"—" }}</div>
                             </div>
                         </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 border border-light-subtle">
+                                <div class="text-uppercase text-muted small">Data model</div>
+                                <div class="fw-semibold">{{ offer_snapshot.data_model|default:"—" }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-4 border border-light-subtle">
+                                <div class="text-uppercase text-muted small">Purpose of use</div>
+                                <div class="fw-semibold">{{ offer_snapshot.purpose_of_use|default:"—" }}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -312,7 +324,7 @@
                     <ul class="list-unstyled list-hint text-muted mb-0">
                         <li><i class="bi bi-stars text-primary me-2"></i> Keep titles playful but specific — it helps consumers trust the content faster.</li>
                         <li><i class="bi bi-emoji-smile text-primary me-2"></i> Plain-language descriptions beat jargon every time.</li>
-                        <li><i class="bi bi-geo-alt text-primary me-2"></i> Offer URL unavailable? Upload a JSON sample; we’ll host it for you.</li>
+                        <li><i class="bi bi-geo-alt text-primary me-2"></i> Verify the access URL responds quickly — it drives confidence when testing.</li>
                     </ul>
                 </div>
 
@@ -326,7 +338,7 @@
                             </tr>
                             <tr>
                                 <td class="text-muted small">Test access</td>
-                                <td><span class="chip neutral"><i class="bi bi-clock-history"></i> Built-in tester below</span></td>
+                                <td><span class="chip neutral"><i class="bi bi-clock-history"></i> Connector checks disabled</span></td>
                             </tr>
                             <tr>
                                 <td class="text-muted small">Share</td>
@@ -358,6 +370,22 @@
 
                     <form id="metadata-form" method="post" novalidate>
                         {% csrf_token %}
+
+                        {% if form.errors %}
+                        <div class="alert alert-danger d-flex flex-column gap-2">
+                            <div class="fw-semibold"><i class="bi bi-x-octagon me-1"></i> We still need a few fixes before publishing:</div>
+                            <ul class="mb-0 ps-3">
+                                {% for field in form %}
+                                    {% if field.errors %}
+                                    <li>{{ field.label }} — {{ field.errors|join:', ' }}</li>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if form.non_field_errors %}
+                                    <li>{{ form.non_field_errors|join:', ' }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% endif %}
 
                         <section class="section-card">
                             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -394,6 +422,32 @@
                                     <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
                                 {% endfor %}
                             </div>
+                            <div class="row g-3">
+                                <div class="col-lg-6">
+                                    <label for="data_model" class="form-label fw-semibold">Data model</label>
+                                    <select id="data_model" name="data_model" class="form-select" required>
+                                        {% for value,label in form.data_model.field.choices %}
+                                            <option value="{{ value }}" {% if form.data_model.value == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="helper-text mt-1">Select the canonical model governing this offer’s structure.</div>
+                                    {% for error in form.data_model.errors %}
+                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-lg-6">
+                                    <label for="purpose_of_use" class="form-label fw-semibold">Purpose of use</label>
+                                    <select id="purpose_of_use" name="purpose_of_use" class="form-select" required>
+                                        {% for value,label in form.purpose_of_use.field.choices %}
+                                            <option value="{{ value }}" {% if form.purpose_of_use.value == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="helper-text mt-1">Tell consumers how this offer is intended to be used.</div>
+                                    {% for error in form.purpose_of_use.errors %}
+                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
 
                             <div class="row g-3">
                                 <div class="col-lg-6">
@@ -411,18 +465,28 @@
                                         <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
                                     {% endfor %}
                                 </div>
-                                <div class="col-lg-3">
-                                    <label for="offer_license" class="form-label fw-semibold">License</label>
-                                    <select id="offer_license" name="offer_license" class="form-select" required>
-                                        <option value="">Choose...</option>
-                                        {% for value,label in license_choices %}
-                                            <option value="{{ value }}" {% if form.offer_license.value == value %}selected{% endif %}>{{ label }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    {% for error in form.offer_license.errors %}
-                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
-                                    {% endfor %}
+                            </div>
+                        </section>
+
+                        <section class="section-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <div>
+                                    <div class="section-heading mb-1">Usage rights</div>
+                                    <p class="helper-text mb-0">Pin the license separately so compliance teams can find it fast.</p>
                                 </div>
+                                <span class="chip brand"><i class="bi bi-shield-lock"></i> Trust layer</span>
+                            </div>
+                            <div class="mb-3">
+                                <label for="offer_license" class="form-label fw-semibold">License</label>
+                                <select id="offer_license" name="offer_license" class="form-select" required>
+                                    <option value="">Choose...</option>
+                                    {% for value,label in license_choices %}
+                                        <option value="{{ value }}" {% if form.offer_license.value == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% for error in form.offer_license.errors %}
+                                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
                             </div>
                         </section>
 
@@ -430,61 +494,26 @@
                             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                 <div>
                                     <div class="section-heading mb-1">Artifact access</div>
-                                    <p class="helper-text mb-0">Point to your dataset or upload a sample we can host for you.</p>
+                                    <p class="helper-text mb-0">Provide the URL consumers should call. We’ll validate connectivity for you.</p>
                                 </div>
                                 <span class="chip brand"><i class="bi bi-cloud-arrow-up"></i> Publish-ready</span>
                             </div>
 
                             <div class="mb-3">
                                 <label for="accessUrl" class="form-label fw-semibold">Access URL</label>
-                                <div class="input-group">
-                                    <input type="url" id="accessUrl" name="accessUrl" class="form-control" placeholder="https://..." value="{{ form.accessUrl.value|default:'' }}" required>
-                                    <button type="button" id="fileUploadBtn" class="btn btn-outline-rounded"><i class="bi bi-file-earmark-plus"></i> Upload JSON</button>
-                                    <button type="button" id="removeFileBtn" class="btn btn-outline-danger" style="display:none;"><i class="bi bi-x-circle"></i></button>
-                                    <input type="file" id="fileInput" accept=".json" hidden>
-                                </div>
-                                <div id="fileUploadStatus" class="helper-text mt-2"></div>
+                                <input type="url" id="accessUrl" name="accessUrl" class="form-control" placeholder="https://..." value="{{ form.accessUrl.value|default:'' }}" required>
                                 {% for error in form.accessUrl.errors %}
                                     <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
                                 {% endfor %}
                             </div>
 
-                            <div class="row g-3">
-                                <div class="col-lg-6">
-                                    <label for="auth_type" class="form-label fw-semibold">Authentication</label>
-                                    <select id="auth_type" name="auth_type" class="form-select">
-                                        <option value="none" {% if form.auth_type.value == 'none' %}selected{% endif %}>None</option>
-                                        <option value="basic" {% if form.auth_type.value == 'basic' %}selected{% endif %}>Basic (user + password)</option>
-                                        <option value="bearer" {% if form.auth_type.value == 'bearer' %}selected{% endif %}>Bearer token</option>
-                                    </select>
-                                </div>
-                                <div class="col-lg-6 d-flex align-items-end">
-                                    <button type="button" id="testAccessBtn" class="btn btn-outline-rounded w-100"><i class="bi bi-plug"></i> Test access URL</button>
-                                </div>
-                            </div>
+                            <input type="hidden" id="auth_type" name="auth_type" value="{{ form.auth_type.value|default:'none' }}">
+                            <input type="hidden" id="auth_username" name="auth_username" value="{{ form.auth_username.value|default:'' }}">
+                            <input type="hidden" id="auth_password" name="auth_password" value="{{ form.auth_password.value|default:'' }}">
+                            <input type="hidden" id="auth_token" name="auth_token" value="{{ form.auth_token.value|default:'' }}">
 
-                            <div id="basicAuthFields" class="row g-3 mt-1" style="display:none;">
-                                <div class="col-md-6">
-                                    <label for="auth_username" class="form-label fw-semibold">Username</label>
-                                    <input type="text" id="auth_username" name="auth_username" class="form-control" value="{{ form.auth_username.value|default:'' }}">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="auth_password" class="form-label fw-semibold">Password</label>
-                                    <input type="password" id="auth_password" name="auth_password" class="form-control" value="{{ form.auth_password.value|default:'' }}">
-                                </div>
-                            </div>
-
-                            <div id="bearerAuthField" class="mt-3" style="display:none;">
-                                <label for="auth_token" class="form-label fw-semibold">Bearer token</label>
-                                <input type="password" id="auth_token" name="auth_token" class="form-control" value="{{ form.auth_token.value|default:'' }}">
-                            </div>
-
-                            <div class="mt-3">
-                                <div id="testAccessResult" class="helper-text"></div>
-                                <div id="testAccessDetailsWrapper" class="mt-2" style="display:none;">
-                                    <a href="#" id="testAccessToggleDetails" class="small">Show details</a>
-                                    <pre id="testAccessDetails" class="mt-2 p-3 bg-light border rounded" style="display:none;"></pre>
-                                </div>
+                            <div class="alert alert-info mt-3 mb-0">
+                                <i class="bi bi-info-circle me-2"></i> Access URL tests are disabled in this environment.
                             </div>
                         </section>
 
@@ -528,7 +557,7 @@
                         </section>
 
                         <div class="d-flex gap-3 flex-wrap align-items-center">
-                            <button type="submit" class="btn btn-primary-rounded d-flex align-items-center gap-2"><i class="bi bi-rocket-takeoff"></i>Publish to connector</button>
+                            <button type="submit" class="btn btn-primary-rounded d-flex align-items-center gap-2"><i class="bi bi-rocket-takeoff"></i>Publish</button>
                             {% if data_space_consumer_url %}
                             <a class="btn btn-outline-rounded d-flex align-items-center gap-2" href="{{ data_space_consumer_url }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-compass"></i>Jump to consume</a>
                             {% endif %}
@@ -559,148 +588,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const basicFields = document.getElementById("basicAuthFields");
-            const bearerField = document.getElementById("bearerAuthField");
-            const authType = document.getElementById("auth_type");
-            const fileInput = document.getElementById("fileInput");
-            const fileUploadBtn = document.getElementById("fileUploadBtn");
-            const removeFileBtn = document.getElementById("removeFileBtn");
-            const accessUrlField = document.getElementById("accessUrl");
-            const statusLabel = document.getElementById("fileUploadStatus");
-            const testBtn = document.getElementById("testAccessBtn");
-            const resultDiv = document.getElementById("testAccessResult");
-            const detailsWrapper = document.getElementById("testAccessDetailsWrapper");
-            const detailsPre = document.getElementById("testAccessDetails");
-            const toggleLink = document.getElementById("testAccessToggleDetails");
             const copySnippetBtn = document.getElementById("copySnippetBtn");
             const snippetBlock = document.getElementById("publishSnippet");
-
-            function updateAuthUI() {
-                const type = authType.value;
-                basicFields.style.display = type === "basic" ? "flex" : "none";
-                bearerField.style.display = type === "bearer" ? "block" : "none";
-            }
-            updateAuthUI();
-            authType.addEventListener("change", updateAuthUI);
-
-            fileUploadBtn.addEventListener("click", () => fileInput.click());
-            fileInput.addEventListener("change", () => handleFileUpload(fileInput.files));
-            removeFileBtn.addEventListener("click", () => resetUploadState());
-
-            function handleFileUpload(files) {
-                if (!files || !files.length) { return; }
-                const formData = new FormData();
-                for (const file of files) {
-                    formData.append("file", file);
-                }
-                resultDiv.innerHTML = '';
-                statusLabel.innerHTML = '<span class="working-pill"><span class="spinner-border spinner-border-sm"></span> Uploading…</span>';
-
-                const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-                fetch("{% url 'provide:file_upload' %}", {
-                    method: "POST",
-                    headers: {"X-CSRFToken": csrfToken},
-                    body: formData
-                })
-                .then(resp => resp.json())
-                .then(data => {
-                    if (data.error) {
-                        statusLabel.innerHTML = `<span class="text-danger"><i class="bi bi-emoji-frown"></i> ${data.error}</span>`;
-                        resetUploadState(false);
-                        return;
-                    }
-                    accessUrlField.value = data.offer_access_url;
-                    statusLabel.innerHTML = `<span class="text-success"><i class="bi bi-emoji-smile"></i> Uploaded! ${data.file_urls.length} file(s) ready.</span>`;
-                    removeFileBtn.style.display = "inline-flex";
-                })
-                .catch(err => {
-                    statusLabel.innerHTML = `<span class="text-danger"><i class="bi bi-emoji-dizzy"></i> Upload failed: ${err.message}</span>`;
-                    resetUploadState(false);
-                });
-            }
-
-            function resetUploadState(clearUrl = true) {
-                fileInput.value = "";
-                removeFileBtn.style.display = "none";
-                if (clearUrl) {
-                    accessUrlField.value = "";
-                }
-            }
-
-            function getAuthPayload() {
-                const type = authType.value;
-                if (type === "basic") {
-                    return {
-                        auth_type: "basic",
-                        auth_username: document.getElementById("auth_username").value,
-                        auth_password: document.getElementById("auth_password").value
-                    };
-                }
-                if (type === "bearer") {
-                    return {
-                        auth_type: "bearer",
-                        auth_token: document.getElementById("auth_token").value
-                    };
-                }
-                return { auth_type: "none" };
-            }
-
-            function csrftoken() {
-                const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-                return tokenInput ? tokenInput.value : '';
-            }
-
-            if (testBtn) {
-                testBtn.addEventListener("click", () => {
-                    const url = accessUrlField.value;
-                    if (!url) {
-                        resultDiv.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-triangle"></i> Add an access URL first.</span>';
-                        return;
-                    }
-                    resultDiv.innerHTML = '<span class="working-pill"><span class="spinner-border spinner-border-sm"></span> Checking connectivity…</span>';
-                    detailsWrapper.style.display = "none";
-                    detailsPre.style.display = "none";
-
-                    const formPayload = new URLSearchParams({
-                        accessUrl: url,
-                        ...getAuthPayload()
-                    });
-
-                    fetch("{% url 'provide:test_access' %}", {
-                        method: "POST",
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-CSRFToken': csrftoken()
-                        },
-                        body: formPayload.toString()
-                    })
-                    .then(resp => resp.json())
-                    .then(data => {
-                        if (data.status === "success") {
-                            resultDiv.innerHTML = '<span class="text-success fw-semibold"><i class="bi bi-emoji-smile"></i> Looking good! The URL responded happily.</span>';
-                        } else {
-                            const errorMessage = data.error || data.text || data.reason || "We could not reach the URL.";
-                            resultDiv.innerHTML = `<span class="text-danger fw-semibold"><i class="bi bi-emoji-dizzy"></i> Hmm, something felt off. ${errorMessage}</span>`;
-                        }
-                        if (data.text || data.data || data.error) {
-                            detailsWrapper.style.display = "block";
-                            detailsPre.textContent = JSON.stringify(data, null, 2);
-                            detailsPre.style.display = "none";
-                            toggleLink.textContent = "Show details";
-                        }
-                    })
-                    .catch(err => {
-                        resultDiv.innerHTML = `<span class="text-danger fw-semibold"><i class="bi bi-emoji-dizzy"></i> Request failed: ${err.message}</span>`;
-                    });
-                });
-
-                toggleLink.addEventListener("click", e => {
-                    e.preventDefault();
-                    const isHidden = detailsPre.style.display === "none";
-                    detailsPre.style.display = isHidden ? "block" : "none";
-                    toggleLink.textContent = isHidden ? "Hide details" : "Show details";
-                });
-            }
 
             if (copySnippetBtn) {
                 copySnippetBtn.addEventListener("click", () => {

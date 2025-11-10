@@ -42,3 +42,15 @@ class License(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class OfferAdditionalMetadata(models.Model):
+    """Store provider-specific metadata linked to connector offers."""
+    offer_id = models.CharField(max_length=255, unique=True)
+    data_model = models.CharField(max_length=255)
+    purpose_of_use = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.offer_id} extras"

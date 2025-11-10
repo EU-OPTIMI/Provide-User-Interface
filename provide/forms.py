@@ -2,6 +2,15 @@
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.conf import settings
+
+
+def _build_select_choices(option_list, placeholder):
+    """Return select choices with a leading placeholder."""
+    normalized = [(opt.strip(), opt.strip()) for opt in option_list if opt and opt.strip()]
+    if not normalized:
+        return [('', 'No options configured')]
+    return [('', placeholder)] + normalized
 
 class UploadMetadataForm(forms.Form):
     offer_title = forms.CharField()
@@ -14,7 +23,9 @@ class UploadMetadataForm(forms.Form):
     start = forms.DateTimeField(required=True, input_formats=['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M'])
     end = forms.DateTimeField(required=True, input_formats=['%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M'])
     access_policy = forms.ChoiceField(choices=[('', 'Select access policy'), ('between_dates', 'Provide access between dates')], required=True)
-    value = forms.CharField(widget=forms.Textarea)
+    value = forms.CharField(widget=forms.HiddenInput, required=False)
+    data_model = forms.ChoiceField(choices=[], required=True)
+    purpose_of_use = forms.ChoiceField(choices=[], required=True)
     # Authentication fields for access URL testing and artifact creation
     AUTH_TYPE_CHOICES = (
         ('none', 'None'),
@@ -31,6 +42,10 @@ class UploadMetadataForm(forms.Form):
         self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
         self.fields['offer_license'].choices = license_choices
+        data_model_options = getattr(settings, 'DATA_MODEL_OPTIONS', [])
+        purpose_options = getattr(settings, 'PURPOSE_OF_USE_OPTIONS', [])
+        self.fields['data_model'].choices = _build_select_choices(data_model_options, 'Select data model')
+        self.fields['purpose_of_use'].choices = _build_select_choices(purpose_options, 'Select purpose')
 
     def clean(self):
         cleaned = super().clean()

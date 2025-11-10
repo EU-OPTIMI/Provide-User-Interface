@@ -434,15 +434,25 @@ def runner(user_metadata):
     
     offer_created_successfully = process_addition("Add Artifact to Representation", add_artifact_to_representation, created_representation_id, created_artifact_id)
     
-    if offer_created_successfully == 'success':
+    success = offer_created_successfully == 'success'
+    result_payload = {
+        'success': success,
+        'offer_id': created_resource_id,
+        'catalog_id': created_catalog_id,
+        'representation_id': created_representation_id,
+        'contract_id': created_contract_id,
+        'rule_id': created_rule_id,
+        'artifact_id': created_artifact_id,
+        'status': offer_created_successfully,
+    }
+    if success:
         logger.info(
             "Provisioning workflow completed successfully",
             extra={'offer_id': created_resource_id}
         )
-        return True
     else:
         logger.error(
             "Provisioning workflow failed during artifact linkage",
-            extra={'offer_id': created_resource_id}
+            extra={'offer_id': created_resource_id, 'result_payload': result_payload}
         )
-        return False
+    return result_payload

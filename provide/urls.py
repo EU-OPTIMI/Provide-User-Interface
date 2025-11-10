@@ -14,4 +14,6 @@ urlpatterns = [
     path('api/uploaded-data/<int:data_id>/', views.uploaded_data_api, name='uploaded_data_api'),
     # API endpoint for OfferAccess (returns all linked data)
     path('api/offer-access/<uuid:offer_uuid>/', views.offer_access_api, name='offer_access_api'),
+    # API endpoint for offer-specific additional metadata
+    path('api/offers/<str:offer_id>/extras/', views.offer_additional_metadata_api, name='offer_additional_metadata_api'),
 ]

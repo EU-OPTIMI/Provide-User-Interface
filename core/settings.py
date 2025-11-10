@@ -128,8 +128,19 @@ ENFORCE_CONNECTOR_SSL = config('REQUESTS_VERIFY_SSL', cast=bool)
 
 BROKER_URL = config('BROKER_URL', '')
 
+# Provider UI extra metadata choices
+DATA_MODEL_OPTIONS = config(
+    'DATA_MODEL_OPTIONS',
+    default='Common Information Model (CIM),Open Field Message Bus (OpenFMB),Custom / Other',
+    cast=Csv()
+)
+PURPOSE_OF_USE_OPTIONS = config(
+    'PURPOSE_OF_USE_OPTIONS',
+    default='Analytics,Operations,Research,Regulatory Reporting',
+    cast=Csv()
+)
+
 # For the file upload
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
 

@@ -10,7 +10,7 @@ import os
 from .forms import UploadMetadataForm
 from .connector import runner
 from .connector import test_access_url
-from .models import License, UploadedFile
+from .models import License, UploadedFile, OfferAdditionalMetadata
 import json
 from django.views.decorators.http import require_GET
 from django.views.decorators.csrf import csrf_exempt
@@ -240,7 +240,9 @@ def handle_metadata(request):
                 'end': end_date,
                 'access_policy': 'between_dates',  # Set the policy type
                 'value': get_fixed_policy_rule(),  # use fixed policy for validation
-                'auth_type': 'none'  # Default auth type
+                'auth_type': 'none',  # Default auth type
+                'data_model': offer_data.get('dataModel', ''),
+                'purpose_of_use': offer_data.get('purposeOfUse', ''),
             }
             
             logger.info("Persisting initial provider metadata in session", extra={'offer_title': initial_data.get('offer_title')})
@@ -271,7 +273,9 @@ def provide_offer(request):
         'start': '',
         'end': '',
         'value': '',
-        'auth_type': 'none'
+        'auth_type': 'none',
+        'data_model': '',
+        'purpose_of_use': '',
     })
 
     if request.method == 'POST':
@@ -295,12 +299,33 @@ def provide_offer(request):
             user_metadata = generate_user_metadata(data, license_url)
             logger.debug("Prepared user metadata for connector runner", extra={'offer_title': user_metadata['offer'].get('title')})
 
-            result = runner(user_metadata)
-            if result:
-                logger.info("Offer successfully published to data space", extra={'offer_title': user_metadata['offer'].get('title')})
-                messages.success(request, "The offer was successfully provided to the data space.")
+            result = runner(user_metadata) or {}
+            if result.get('success'):
+                offer_id = result.get('offer_id')
+                logger.info(
+                    "Offer successfully published to data space",
+                    extra={'offer_title': user_metadata['offer'].get('title'), 'offer_id': offer_id}
+                )
+                if offer_id:
+                    OfferAdditionalMetadata.objects.update_or_create(
+                        offer_id=offer_id,
+                        defaults={
+                            'data_model': data.get('data_model'),
+                            'purpose_of_use': data.get('purpose_of_use'),
+                        }
+                    )
+                    messages.success(
+                        request,
+                        f"The offer was successfully provided to the data space (ID: {offer_id})."
+                    )
+                else:
+                    logger.warning("Connector runner succeeded but offer_id missing")
+                    messages.success(request, "The offer was successfully provided to the data space, but no identifier was returned.")
             else:
-                logger.error("Offer publishing failed according to connector runner", extra={'offer_title': user_metadata['offer'].get('title')})
+                logger.error(
+                    "Offer publishing failed according to connector runner",
+                    extra={'offer_title': user_metadata['offer'].get('title'), 'runner_response': result}
+                )
                 messages.error(request, "Something went wrong with providing the offer.")
         else:
             messages.error(request, "Form is invalid. Please correct the errors and try again.")
@@ -330,6 +355,8 @@ def provide_offer(request):
         'access_url': field_value('accessUrl'),
         'start': field_value('start'),
         'end': field_value('end'),
+        'data_model': field_value('data_model'),
+        'purpose_of_use': field_value('purpose_of_use'),
     }
 
     stage_sequence = [
@@ -561,6 +588,26 @@ def offer_access_api(request, offer_uuid):
     offer_url = offer_access.url
     all_data = [ud.data for ud in offer_access.uploaded_data.all()]
     return JsonResponse({"offer_access_url": offer_url, "data": all_data}, safe=False)
+
+
+@require_GET
+@csrf_exempt
+def offer_additional_metadata_api(request, offer_id):
+    """Expose provider-only metadata linked to a connector offer."""
+    try:
+        record = OfferAdditionalMetadata.objects.get(offer_id=offer_id)
+    except OfferAdditionalMetadata.DoesNotExist:
+        return JsonResponse(
+            {"offer_id": offer_id, "data_model": None, "purpose_of_use": None},
+            status=404
+        )
+    return JsonResponse({
+        "offer_id": record.offer_id,
+        "data_model": record.data_model,
+        "purpose_of_use": record.purpose_of_use,
+        "created_at": record.created_at.isoformat(),
+        "updated_at": record.updated_at.isoformat(),
+    })
 # Add REST API endpoint for extracted data
 @require_GET
 @csrf_exempt
