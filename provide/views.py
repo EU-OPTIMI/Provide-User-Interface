@@ -18,6 +18,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.urls import reverse
 from django.core.exceptions import ValidationError
+import requests
+from urllib.parse import urljoin, quote
 
 # Add a simple model for extracted data (to be added in models.py)
 try:
@@ -257,6 +259,14 @@ def handle_metadata(request):
 
 def provide_offer(request):
     """Provide an offer with metadata."""
+    # Enforce authenticated access at view-level (middleware should set request.auth_user)
+    auth_base = getattr(settings, 'AUTH_SERVICE_BASE_URL', '').rstrip('/')
+    auth_login_page = getattr(settings, 'AUTH_SERVICE_LOGIN_PAGE', '/api/auth/login-page/')
+    auth_login_url = urljoin(f"{auth_base}/", auth_login_page.lstrip('/')) if auth_base else auth_login_page
+    if not getattr(request, 'auth_user', None):
+        login_redirect = f"{auth_login_url}?next={quote(request.build_absolute_uri())}"
+        return redirect(login_redirect)
+
     connector_url = settings.CONNECTOR_URL
     consumer_url = getattr(settings, 'DATA_SPACE_CONSUMER_SERVICE_URL', '')
     license_choices = get_license_choices()
@@ -362,7 +372,7 @@ def provide_offer(request):
     stage_sequence = [
         ("Create", "Sketch the idea"),
         ("Describe", "Add metadata & policy"),
-        ("Publish", "Send to the connector"),
+        ("Publish", "Share it with other data space participants"),
         ("Monitor", "Track usage & reassure"),
     ]
     current_stage_label = "Describe"
@@ -381,6 +391,15 @@ def provide_offer(request):
             'status': status
         })
 
+    auth_base = getattr(settings, 'AUTH_SERVICE_BASE_URL', '').rstrip('/')
+    auth_login_page = getattr(settings, 'AUTH_SERVICE_LOGIN_PAGE', '/api/auth/login-page/')
+    auth_logout_endpoint = '/api/auth/logout/'
+    auth_profile_endpoint = getattr(settings, 'AUTH_SERVICE_PROFILE_ENDPOINT', '/api/auth/me/')
+    auth_login_url = urljoin(f"{auth_base}/", auth_login_page.lstrip('/')) if auth_base else auth_login_page
+    auth_logout_url = urljoin(f"{auth_base}/", auth_logout_endpoint.lstrip('/')) if auth_base else auth_logout_endpoint
+    auth_profile_url = urljoin(f"{auth_base}/", auth_profile_endpoint.lstrip('/')) if auth_base else auth_profile_endpoint
+    auth_profile_proxy_url = reverse('provide:auth_profile_proxy')
+
     return render(request, 'provide/provide_offer.html', {
         'form': form,
         'licenses': License.objects.all(),
@@ -391,7 +410,53 @@ def provide_offer(request):
         'progress_steps': progress_steps,
         'current_stage_label': current_stage_label,
         'license_choices': license_choices,
+        'auth_login_url': auth_login_url,
+        'auth_logout_url': auth_logout_url,
+        'auth_profile_url': auth_profile_url,
+        'auth_profile_proxy_url': auth_profile_proxy_url,
     })
+
+# Auth profile proxy to avoid cross-origin cookie issues
+@require_GET
+def auth_profile_proxy(request):
+    base = getattr(settings, 'AUTH_SERVICE_BASE_URL', '').rstrip('/')
+    profile_endpoint = getattr(settings, 'AUTH_SERVICE_PROFILE_ENDPOINT', '/api/auth/me/')
+    session_cookie_name = getattr(settings, 'AUTH_SERVICE_SESSION_COOKIE', 'sessionid')
+    verify_ssl = getattr(settings, 'AUTH_SERVICE_VERIFY_SSL', True)
+    timeout = getattr(settings, 'AUTH_SERVICE_TIMEOUT', 3)
+
+    if not base:
+        return JsonResponse({'detail': 'Auth service not configured'}, status=503)
+
+    # Try the configured cookie name first; fall back to common variants
+    session_token = request.COOKIES.get(session_cookie_name) or request.COOKIES.get('sessionid') or request.COOKIES.get('auth_sessionid')
+    if not session_token:
+        return JsonResponse({'detail': 'Authentication credentials were not provided.'}, status=401)
+
+    url = urljoin(f"{base}/", profile_endpoint.lstrip('/'))
+    try:
+        resp = requests.get(
+            url,
+            headers={"Accept": "application/json"},
+            cookies={
+                session_cookie_name: session_token,
+                'sessionid': request.COOKIES.get('sessionid', session_token),
+                'auth_sessionid': request.COOKIES.get('auth_sessionid', session_token),
+            },
+            timeout=timeout,
+            verify=verify_ssl,
+        )
+    except requests.RequestException as exc:
+        logger.warning("Profile proxy auth service unreachable: %s", exc)
+        return JsonResponse({'detail': 'Authentication service unavailable.'}, status=503)
+
+    content_type = resp.headers.get('Content-Type', '')
+    if 'application/json' in content_type:
+        payload = resp.json()
+    else:
+        payload = {'detail': resp.text}
+
+    return JsonResponse(payload, status=resp.status_code, safe=False)
 
 # in provide/views.py
 

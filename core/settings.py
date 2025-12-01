@@ -1,6 +1,7 @@
 import os
 from decouple import config, Csv
 from pathlib import Path
+from django.conf import global_settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,6 +38,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware',  # CSRF middleware disabled - DO NOT DO THIS IN PRODUCTION
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.auth_service.AuthServiceMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -107,13 +109,16 @@ CORS_ALLOW_CREDENTIALS = True
 # CSRF settings
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read the cookie
-CSRF_COOKIE_SECURE = False    # Set to True in production with HTTPS
-CSRF_COOKIE_SAMESITE = None   # Required for cross-origin requests
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', cast=bool, default=False)
+_csrf_samesite = config('CSRF_COOKIE_SAMESITE', default=None)
+CSRF_COOKIE_SAMESITE = None if _csrf_samesite in (None, '', 'None') else _csrf_samesite
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:8000',
+    'http://localhost:8001',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:8000',
+    'http://127.0.0.1:8001',
 ]
 
 # Custom settings
@@ -140,7 +145,32 @@ PURPOSE_OF_USE_OPTIONS = config(
     cast=Csv()
 )
 
+# External authentication service (shared across microservices)
+AUTH_SERVICE_BASE_URL = config('AUTH_SERVICE_BASE_URL', default='')
+AUTH_SERVICE_PROFILE_ENDPOINT = config(
+    'AUTH_SERVICE_PROFILE_ENDPOINT', default='/api/auth/me/'
+)
+AUTH_SERVICE_LOGIN_PAGE = config(
+    'AUTH_SERVICE_LOGIN_PAGE', default='/api/auth/login-page/'
+)
+DEFAULT_SESSION_COOKIE_NAME = globals().get(
+    'SESSION_COOKIE_NAME', getattr(global_settings, 'SESSION_COOKIE_NAME', 'sessionid')
+)
+AUTH_SERVICE_SESSION_COOKIE = config(
+    'AUTH_SERVICE_SESSION_COOKIE', default=DEFAULT_SESSION_COOKIE_NAME
+)
+AUTH_SERVICE_TIMEOUT = config('AUTH_SERVICE_TIMEOUT', cast=int, default=3)
+AUTH_SERVICE_VERIFY_SSL = config('AUTH_SERVICE_VERIFY_SSL', cast=bool, default=True)
+AUTH_SERVICE_ALLOWLIST = config('AUTH_SERVICE_ALLOWLIST', default='/health,/metrics', cast=Csv())
+AUTH_SERVICE_ENFORCE = config('AUTH_SERVICE_ENFORCE', cast=bool, default=False)
+
+# Provider app session cookie (keep distinct from auth service cookie)
+SESSION_COOKIE_NAME = config('SESSION_COOKIE_NAME', default='provider_sessionid')
+# Session / cookie tuning (for local cross-origin between ports)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', cast=bool, default=False)
+_session_samesite = config('SESSION_COOKIE_SAMESITE', default=None)
+SESSION_COOKIE_SAMESITE = None if _session_samesite in (None, '', 'None') else _session_samesite
+
 # For the file upload
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-

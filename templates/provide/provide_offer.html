@@ -220,6 +220,12 @@
         .table-hint tbody tr:nth-child(odd) {
             background: rgba(241, 245, 249, 0.4);
         }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -228,7 +234,7 @@
             <div class="row align-items-center">
                 <div class="col-lg-8">
                     <p class="text-uppercase fw-semibold mb-2" style="letter-spacing: 2px;">Provider Journey</p>
-                    <h1 class="fw-bold mb-3">Share brilliant datasets with a smile</h1>
+                    <h1 class="fw-bold mb-3">Share brilliant data products with a smile</h1>
                     <p class="mb-0">Create, describe, publish, and monitor your offer in one flow. We’ll keep things cheerful, plain-English, and on track.</p>
                 </div>
             </div>
@@ -269,6 +275,36 @@
 
         <div class="row g-4 align-items-start">
             <div class="col-xl-4">
+                <div class="card overview-card p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h3 class="mb-1">Account</h3>
+                        {% if request.user.is_authenticated %}
+                            <span class="chip soft"><span class="status-dot bg-success"></span> Signed in</span>
+                        {% else %}
+                            <span class="chip neutral"><span class="status-dot bg-secondary"></span> Guest</span>
+                        {% endif %}
+                    </div>
+                    {% if request.user.is_authenticated %}
+                        <p class="text-muted mb-3">You’re authenticated via the shared auth service.</p>
+                        <ul class="list-unstyled text-muted small mb-3">
+                            <li class="mb-1"><i class="bi bi-person-circle text-primary me-2"></i>{{ request.user.username|default:"—" }}</li>
+                            <li class="mb-1"><i class="bi bi-envelope text-primary me-2"></i>{{ request.user.email|default:"—" }}</li>
+                            <li class="mb-1"><i class="bi bi-shield-check text-primary me-2"></i>ID: {{ request.user.id|default:"—" }}</li>
+                        </ul>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-rounded btn-sm" id="logoutBtn" data-logout-url="{{ auth_logout_url }}" data-login-url="{{ auth_login_url }}"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                            <!--<button type="button" class="btn btn-outline-rounded btn-sm" id="profileBtn" data-profile-url="{{ auth_profile_proxy_url }}" data-login-url="{{ auth_login_url }}"><i class="bi bi-person-badge"></i> Profile API</button>-->
+                        </div>
+                        <div class="mt-3" id="profileResult" style="display:none;">
+                            <div class="small text-muted mb-1">Profile response</div>
+                            <pre class="bg-light p-2 rounded-3" style="white-space: pre-wrap;" id="profileResultText"></pre>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-3">Not signed in. Use the auth service to continue.</p>
+                        <a class="btn btn-primary-rounded btn-sm" href="{{ auth_login_url }}?next={{ request.build_absolute_uri|urlencode }}"><i class="bi bi-box-arrow-in-right"></i> Go to login</a>
+                    {% endif %}
+                </div>
+
                 <div class="card overview-card p-4 mb-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <h3>Offer snapshot</h3>
@@ -363,7 +399,7 @@
                         <div>
                             <div class="text-uppercase text-muted small fw-semibold">Step 2 · Describe</div>
                             <h2 class="fw-bold mb-1">Let’s describe your brilliant offer</h2>
-                            <p class="helper-text mb-0">We’ll use this to publish a contract-ready resource to the connector.</p>
+                            <p class="helper-text mb-0">We’ll use this to publish a contract-ready resource to other data space participants.</p>
                         </div>
                         <div class="working-pill"><span class="spinner-border spinner-border-sm"></span> We’ll keep things running smoothly</div>
                     </div>
@@ -391,7 +427,7 @@
                             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                 <div>
                                     <div class="section-heading mb-1">Offer basics</div>
-                                    <p class="helper-text mb-0">Tell future consumers what this offer unlocks.</p>
+                                    <p class="helper-text mb-0">Tell future consumers what value this offer unlocks.</p>
                                 </div>
                                 <span class="chip brand"><i class="bi bi-pencil-square"></i> Create + Describe</span>
                             </div>
@@ -590,6 +626,10 @@
         document.addEventListener("DOMContentLoaded", function () {
             const copySnippetBtn = document.getElementById("copySnippetBtn");
             const snippetBlock = document.getElementById("publishSnippet");
+            const logoutBtn = document.getElementById("logoutBtn");
+            const profileBtn = document.getElementById("profileBtn");
+            const profileResult = document.getElementById("profileResult");
+            const profileResultText = document.getElementById("profileResultText");
 
             if (copySnippetBtn) {
                 copySnippetBtn.addEventListener("click", () => {
@@ -598,6 +638,68 @@
                         copySnippetBtn.innerHTML = '<i class="bi bi-clipboard-check"></i> Copied!';
                         setTimeout(() => copySnippetBtn.innerHTML = '<i class="bi bi-clipboard"></i> Copy', 2200);
                     });
+                });
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    const url = logoutBtn.dataset.logoutUrl;
+                    const loginUrl = logoutBtn.dataset.loginUrl;
+                    const getCookie = (name) => {
+                        const value = `; ${document.cookie}`;
+                        const parts = value.split(`; ${name}=`);
+                        if (parts.length === 2) return parts.pop().split(';').shift();
+                        return null;
+                    };
+                    try {
+                        const resp = await fetch(url, {
+                            method: "POST",
+                            credentials: "include",
+                            headers: {
+                                "X-CSRFToken": getCookie("csrftoken") || "",
+                            },
+                        });
+                        if (!resp.ok) {
+                            console.warn("Logout non-200 response", resp.status);
+                        }
+                    } catch (err) {
+                        console.error("Logout error", err);
+                    } finally {
+                        if (loginUrl) {
+                            const next = encodeURIComponent(window.location.origin + window.location.pathname);
+                            window.location.href = `${loginUrl}?next=${next}`;
+                        } else {
+                            window.location.reload();
+                        }
+                    }
+                });
+            }
+
+            if (profileBtn) {
+                profileBtn.addEventListener("click", async (e) => {
+                    e.preventDefault();
+                    const url = profileBtn.dataset.profileUrl;
+                    const loginUrl = profileBtn.dataset.loginUrl;
+                    try {
+                        const resp = await fetch(url, { credentials: "include" });
+                        if (resp.status === 401) {
+                            if (loginUrl) {
+                                const next = encodeURIComponent(window.location.href);
+                                window.location.href = `${loginUrl}?next=${next}`;
+                                return;
+                            }
+                        }
+                        const text = await resp.text();
+                        profileResultText.textContent = text || "No content";
+                        profileResult.style.display = "block";
+                        if (!resp.ok) {
+                            profileResultText.textContent = `Status ${resp.status}: ${text}`;
+                        }
+                    } catch (err) {
+                        profileResultText.textContent = `Error: ${err}`;
+                        profileResult.style.display = "block";
+                    }
                 });
             }
         });

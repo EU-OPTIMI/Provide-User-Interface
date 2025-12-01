@@ -16,4 +16,5 @@ urlpatterns = [
     path('api/offer-access/<uuid:offer_uuid>/', views.offer_access_api, name='offer_access_api'),
     # API endpoint for offer-specific additional metadata
     path('api/offers/<str:offer_id>/extras/', views.offer_additional_metadata_api, name='offer_additional_metadata_api'),
+    path('api/auth/profile/', views.auth_profile_proxy, name='auth_profile_proxy'),
 ]
