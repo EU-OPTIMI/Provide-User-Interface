@@ -652,6 +652,9 @@
                         if (parts.length === 2) return parts.pop().split(';').shift();
                         return null;
                     };
+                    const expireCookie = (name) => {
+                        document.cookie = `${name}=; Max-Age=0; path=/;`;
+                    };
                     try {
                         const resp = await fetch(url, {
                             method: "POST",
@@ -666,6 +669,9 @@
                     } catch (err) {
                         console.error("Logout error", err);
                     } finally {
+                        // Clear known auth cookies on the browser side to prevent reuse
+                        const providerCookie = "{{ provider_cookie_name|default:'provider_sessionid' }}";
+                        ["sessionid", "auth_sessionid", "csrftoken", providerCookie].forEach(expireCookie);
                         if (loginUrl) {
                             const next = encodeURIComponent(window.location.origin + window.location.pathname);
                             window.location.href = `${loginUrl}?next=${next}`;

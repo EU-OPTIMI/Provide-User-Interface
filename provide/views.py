@@ -399,6 +399,7 @@ def provide_offer(request):
     auth_logout_url = urljoin(f"{auth_base}/", auth_logout_endpoint.lstrip('/')) if auth_base else auth_logout_endpoint
     auth_profile_url = urljoin(f"{auth_base}/", auth_profile_endpoint.lstrip('/')) if auth_base else auth_profile_endpoint
     auth_profile_proxy_url = reverse('provide:auth_profile_proxy')
+    provider_cookie_name = getattr(settings, 'SESSION_COOKIE_NAME', 'sessionid')
 
     return render(request, 'provide/provide_offer.html', {
         'form': form,
@@ -414,6 +415,7 @@ def provide_offer(request):
         'auth_logout_url': auth_logout_url,
         'auth_profile_url': auth_profile_url,
         'auth_profile_proxy_url': auth_profile_proxy_url,
+        'provider_cookie_name': provider_cookie_name,
     })
 
 # Auth profile proxy to avoid cross-origin cookie issues
