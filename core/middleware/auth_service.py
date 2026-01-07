@@ -85,16 +85,16 @@ class AuthServiceMiddleware:
                 logger.debug("Auth middleware allowlisted path: %s", request.path)
             return self.get_response(request)
 
-        session_token = request.COOKIES.get(self.session_cookie_name)
+        session_token, auth_cookies = self._get_session_cookies(request)
         if not session_token:
             if self.enforce:
                 logger.info(
-                    "Auth rejected: no session cookie (%s) on %s", self.session_cookie_name, request.path
+                    "Auth rejected: no session cookie found on %s", request.path
                 )
                 return self._reject_or_redirect(request, "Authentication cookie missing.")
             return self.get_response(request)
 
-        profile, failure_reason = self._fetch_profile(session_token)
+        profile, failure_reason = self._fetch_profile(auth_cookies)
         if profile:
             user = RemoteAuthUser(profile)
             request.auth_user = user
@@ -119,13 +119,29 @@ class AuthServiceMiddleware:
     def _is_allowlisted(self, path: str) -> bool:
         return any(path.startswith(prefix) for prefix in self.allowlist)
 
-    def _fetch_profile(self, session_token):
+    def _get_session_cookies(self, request):
+        cookie_names = (self.session_cookie_name, "sessionid", "auth_sessionid")
+        session_token = None
+        cookies = {}
+        for name in cookie_names:
+            token = request.COOKIES.get(name)
+            if token:
+                cookies[name] = token
+                if session_token is None:
+                    session_token = token
+        if session_token:
+            cookies.setdefault(self.session_cookie_name, session_token)
+            cookies.setdefault("sessionid", session_token)
+            cookies.setdefault("auth_sessionid", session_token)
+        return session_token, cookies
+
+    def _fetch_profile(self, cookies):
         url = urljoin(f"{self.base_url}/", self.profile_endpoint.lstrip("/"))
         try:
             response = requests.get(
                 url,
                 headers={"Accept": "application/json"},
-                cookies={self.session_cookie_name: session_token},
+                cookies=cookies,
                 timeout=self.timeout,
                 verify=self.verify_ssl,
             )
