@@ -334,7 +334,10 @@ def provide_offer(request):
                 auth_base = settings.AUTH_SERVICE_BASE_URL.rstrip('/')
                 auth_endpoint = f"{auth_base}/api/users/add-provided-offer/"
 
-                user_id = request.auth_user.get("id")
+                auth_user = getattr(request, "auth_user", None)
+                user_id = getattr(auth_user, "id", None) or getattr(
+                    request, "auth_profile", {}
+                ).get("id")
 
                 if offer_id and user_id:
                     try:
