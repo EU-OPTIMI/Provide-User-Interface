@@ -356,7 +356,32 @@ def provide_offer(request):
                             extra={"user_id": user_id, "offer_id": offer_id, "error": str(exc)},
                         )
             
-            
+            # after runner success and offer_id extraction
+
+                auth_user = getattr(request, "auth_user", None)
+                user_id = getattr(auth_user, "id", None)
+
+                if offer_id and user_id:
+                    endpoint = f"http://localhost:8000/api/providers/{user_id}/set-provided-offers/"
+                    payload = {"offer_ids": [offer_id]}
+
+                    try:
+                        resp = requests.post(
+                            endpoint,
+                            json=payload,
+                            headers={"Content-Type": "application/json"},
+                            timeout=5,
+                        )
+                        resp.raise_for_status()
+                    except requests.RequestException as exc:
+                        logger.error(
+                            "Failed to persist provided offer",
+                            extra={
+                                "user_id": user_id,
+                                "offer_id": offer_id,
+                                "error": str(exc),
+                            },
+                        )
             
             else:
                 logger.error(
@@ -728,30 +753,66 @@ def handle_file_download(file_id):
 
 
 def my_offers(request):
-    offers = [
-        {
-            "offer_id": "abc123",
-            "offer_title": "Helsinki Weather Data",
-            "offer_description": "Hourly weather observations for Helsinki.",
-            "offer_publisher": "City of Helsinki",
-            "catalog_title": "Weather Catalog",
-            "connector_id": "connector_001",
-            "offer_keywords": ["weather", "helsinki", "hourly"]
-        },
-    ]
+    """Fetch all offers provided by the logged-in user, including their uploaded data."""
+    offers = []
 
-    # Auth URLs
+    auth_user = getattr(request, "auth_user", None)
+    user_id = getattr(auth_user, "id", None)
+
+    if user_id:
+        # Step 1: Get all provided offer IDs
+        endpoint_ids = f"http://localhost:8000/api/providers/{user_id}/get-provided-offers/"
+        try:
+            resp = requests.get(endpoint_ids, timeout=5)
+            resp.raise_for_status()
+            offer_list = resp.json().get("provided_offer_ids", [])
+            offer_ids = [str(offer) for offer in offer_list if offer]
+        except requests.RequestException as exc:
+            print(f"Failed to fetch provided offers for user {user_id}: {exc}")
+            offer_ids = []
+
+        # Step 2: Fetch full offer data for each offer ID
+        headers = {"Authorization": "Basic YWRtaW46cGFzc3dvcmQ="}
+        connector_base = getattr(settings, 'CONNECTOR_URL', 'https://optimi.collab-cloud.eu/connector/')
+
+        for offer_id in offer_ids:
+                try:
+                    url = f"{connector_base.rstrip('/')}/api/offers/{offer_id}"
+                    resp_data = requests.get(url, headers=headers, timeout=5, verify=False)
+                    resp_data.raise_for_status()
+                    offer_data = resp_data.json()
+                    
+                    # Map connector API fields to template fields
+                    offers.append({
+                        "offer_id": offer_data.get("_links", {}).get("self", {}).get("href", "").split('/')[-1],
+                        "offer_title": offer_data.get("title"),
+                        "offer_description": offer_data.get("description"),
+                        "offer_keywords": offer_data.get("keywords", []),
+                        "catalog_title": None,  # Not in current response
+                        "offer_publisher": offer_data.get("publisher"),
+                        "connector_id": None,  # Not in current response
+                    })
+                except requests.RequestException as exc:
+                    print(f"Failed to fetch offer data for offer_id {offer_id}: {exc}")
+
     auth_base = getattr(settings, 'AUTH_SERVICE_BASE_URL', '').rstrip('/')
     auth_login_page = getattr(settings, 'AUTH_SERVICE_LOGIN_PAGE', '/api/auth/login-page/')
     auth_logout_endpoint = '/api/auth/logout/'
+
     auth_login_url = urljoin(f"{auth_base}/", auth_login_page.lstrip('/')) if auth_base else auth_login_page
     auth_logout_url = urljoin(f"{auth_base}/", auth_logout_endpoint.lstrip('/')) if auth_base else auth_logout_endpoint
 
     context = {
-        "offers": offers,
+        "offers": offers,  # full offer_data list
         "auth_logout_url": auth_logout_url,
         "auth_login_url": auth_login_url,
+        "provider_cookie_name": getattr(settings, 'SESSION_COOKIE_NAME', 'sessionid'),
     }
+    print('OFFERS', offers)
+    print('PROVIDED OFFERS',resp.json().get("provided_offer_ids", []))
+
+
 
     return render(request, "provide/my_offers.html", context)
-    
+
+
