@@ -17,4 +17,5 @@ urlpatterns = [
     # API endpoint for offer-specific additional metadata
     path('api/offers/<str:offer_id>/extras/', views.offer_additional_metadata_api, name='offer_additional_metadata_api'),
     path('api/auth/profile/', views.auth_profile_proxy, name='auth_profile_proxy'),
+    path('my-offers/', views.my_offers, name='my_offers'),
 ]

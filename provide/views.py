@@ -331,6 +331,30 @@ def provide_offer(request):
                 else:
                     logger.warning("Connector runner succeeded but offer_id missing")
                     messages.success(request, "The offer was successfully provided to the data space, but no identifier was returned.")
+                auth_base = settings.AUTH_SERVICE_BASE_URL.rstrip('/')
+                auth_endpoint = f"{auth_base}/api/users/add-provided-offer/"
+
+                user_id = request.auth_user.get("id")
+
+                if offer_id and user_id:
+                    try:
+                        resp = requests.post(
+                            auth_endpoint,
+                            json={
+                                "user_id": user_id,
+                                "offer_id": offer_id,
+                            },
+                            timeout=5,
+                        )
+                        resp.raise_for_status()
+                    except requests.RequestException as exc:
+                        logger.error(
+                            "Failed to update auth service with provided offer",
+                            extra={"user_id": user_id, "offer_id": offer_id, "error": str(exc)},
+                        )
+            
+            
+            
             else:
                 logger.error(
                     "Offer publishing failed according to connector runner",
@@ -698,3 +722,33 @@ def handle_file_download(file_id):
     response = HttpResponse(file_data, content_type="application/json")
     response["Content-Disposition"] = f'attachment; filename="{file_instance.file_name}"'
     return response
+
+
+def my_offers(request):
+    offers = [
+        {
+            "offer_id": "abc123",
+            "offer_title": "Helsinki Weather Data",
+            "offer_description": "Hourly weather observations for Helsinki.",
+            "offer_publisher": "City of Helsinki",
+            "catalog_title": "Weather Catalog",
+            "connector_id": "connector_001",
+            "offer_keywords": ["weather", "helsinki", "hourly"]
+        },
+    ]
+
+    # Auth URLs
+    auth_base = getattr(settings, 'AUTH_SERVICE_BASE_URL', '').rstrip('/')
+    auth_login_page = getattr(settings, 'AUTH_SERVICE_LOGIN_PAGE', '/api/auth/login-page/')
+    auth_logout_endpoint = '/api/auth/logout/'
+    auth_login_url = urljoin(f"{auth_base}/", auth_login_page.lstrip('/')) if auth_base else auth_login_page
+    auth_logout_url = urljoin(f"{auth_base}/", auth_logout_endpoint.lstrip('/')) if auth_base else auth_logout_endpoint
+
+    context = {
+        "offers": offers,
+        "auth_logout_url": auth_logout_url,
+        "auth_login_url": auth_login_url,
+    }
+
+    return render(request, "provide/my_offers.html", context)
+    
