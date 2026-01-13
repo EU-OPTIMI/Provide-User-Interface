@@ -548,10 +548,42 @@
                                 {% endfor %}
                             </div>
 
-                            <input type="hidden" id="auth_type" name="auth_type" value="{{ form.auth_type.value|default:'none' }}">
-                            <input type="hidden" id="auth_username" name="auth_username" value="{{ form.auth_username.value|default:'' }}">
-                            <input type="hidden" id="auth_password" name="auth_password" value="{{ form.auth_password.value|default:'' }}">
-                            <input type="hidden" id="auth_token" name="auth_token" value="{{ form.auth_token.value|default:'' }}">
+                            <div class="mb-3">
+                                <label for="auth_type" class="form-label fw-semibold">Access URL authentication</label>
+                                <select id="auth_type" name="auth_type" class="form-select">
+                                    <option value="none" {% if form.auth_type.value == 'none' or not form.auth_type.value %}selected{% endif %}>None</option>
+                                    <option value="basic" {% if form.auth_type.value == 'basic' %}selected{% endif %}>Basic (username/password)</option>
+                                    <option value="bearer" {% if form.auth_type.value == 'bearer' %}selected{% endif %}>Bearer token</option>
+                                </select>
+                                {% for error in form.auth_type.errors %}
+                                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="row g-3" id="basicAuthFields">
+                                <div class="col-md-6">
+                                    <label for="auth_username" class="form-label fw-semibold">Username</label>
+                                    <input type="text" id="auth_username" name="auth_username" class="form-control" value="{{ form.auth_username.value|default:'' }}">
+                                    {% for error in form.auth_username.errors %}
+                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="auth_password" class="form-label fw-semibold">Password</label>
+                                    <input type="password" id="auth_password" name="auth_password" class="form-control" value="{{ form.auth_password.value|default:'' }}">
+                                    {% for error in form.auth_password.errors %}
+                                        <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="mt-3" id="bearerAuthField">
+                                <label for="auth_token" class="form-label fw-semibold">Bearer token</label>
+                                <input type="password" id="auth_token" name="auth_token" class="form-control" value="{{ form.auth_token.value|default:'' }}">
+                                {% for error in form.auth_token.errors %}
+                                    <div class="error-text"><i class="bi bi-exclamation-circle"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
 
                             <div class="alert alert-info mt-3 mb-0">
                                 <i class="bi bi-info-circle me-2"></i> Access URL tests are disabled in this environment.
@@ -685,6 +717,23 @@
                         }
                     }
                 });
+            }
+
+            const authTypeSelect = document.getElementById("auth_type");
+            const basicAuthFields = document.getElementById("basicAuthFields");
+            const bearerAuthField = document.getElementById("bearerAuthField");
+            const updateAuthFields = () => {
+                const authType = authTypeSelect ? authTypeSelect.value : "none";
+                if (basicAuthFields) {
+                    basicAuthFields.style.display = authType === "basic" ? "flex" : "none";
+                }
+                if (bearerAuthField) {
+                    bearerAuthField.style.display = authType === "bearer" ? "block" : "none";
+                }
+            };
+            if (authTypeSelect) {
+                authTypeSelect.addEventListener("change", updateAuthFields);
+                updateAuthFields();
             }
 
             if (profileBtn) {
