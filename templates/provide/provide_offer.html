@@ -753,13 +753,31 @@
                     const url = testAccessBtn.dataset.testUrl;
                     const accessUrlInput = document.getElementById("accessUrl");
                     const authType = authTypeSelect ? authTypeSelect.value : "none";
-                    const payload = new URLSearchParams({
-                        accessUrl: accessUrlInput ? accessUrlInput.value : "",
-                        auth_type: authType,
-                        auth_username: document.getElementById("auth_username")?.value || "",
-                        auth_password: document.getElementById("auth_password")?.value || "",
-                        auth_token: document.getElementById("auth_token")?.value || "",
-                    });
+                    const accessUrlValue = (accessUrlInput ? accessUrlInput.value : "").trim();
+                    if (!accessUrlValue) {
+                        testAccessResultText.textContent = "Access URL is required.";
+                        testAccessResult.style.display = "block";
+                        return;
+                    }
+                    const payload = new URLSearchParams();
+                    payload.set("accessUrl", accessUrlValue);
+                    payload.set("auth_type", authType);
+                    if (authType === "basic") {
+                        const username = (document.getElementById("auth_username")?.value || "").trim();
+                        const password = document.getElementById("auth_password")?.value || "";
+                        if (username) {
+                            payload.set("auth_username", username);
+                        }
+                        if (password) {
+                            payload.set("auth_password", password);
+                        }
+                    }
+                    if (authType === "bearer") {
+                        const token = document.getElementById("auth_token")?.value || "";
+                        if (token) {
+                            payload.set("auth_token", token);
+                        }
+                    }
                     testAccessBtn.disabled = true;
                     testAccessBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing...';
                     try {
@@ -767,12 +785,20 @@
                             method: "GET",
                             credentials: "same-origin",
                         });
-                        const text = await resp.text();
-                        testAccessResultText.textContent = text || "No response body";
-                        testAccessResult.style.display = "block";
-                        if (!resp.ok) {
-                            testAccessResultText.textContent = `Status ${resp.status}: ${text}`;
+                        let bodyText = "";
+                        try {
+                            const contentType = resp.headers.get("Content-Type") || "";
+                            if (contentType.includes("application/json")) {
+                                const data = await resp.json();
+                                bodyText = JSON.stringify(data, null, 2);
+                            } else {
+                                bodyText = await resp.text();
+                            }
+                        } catch (err) {
+                            bodyText = `Unable to parse response body: ${err}`;
                         }
+                        testAccessResultText.textContent = `Status ${resp.status} ${resp.statusText}\n\n${bodyText || "No response body"}`;
+                        testAccessResult.style.display = "block";
                     } catch (err) {
                         testAccessResultText.textContent = `Error: ${err}`;
                         testAccessResult.style.display = "block";
