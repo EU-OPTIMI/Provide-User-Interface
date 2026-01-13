@@ -773,7 +773,7 @@ def my_offers(request):
 
         # Step 2: Fetch full offer data for each offer ID
         headers = {"Authorization": "Basic YWRtaW46cGFzc3dvcmQ="}
-        connector_base = getattr(settings, 'CONNECTOR_URL', 'https://optimi.collab-cloud.eu/connector/')
+        connector_base = getattr(settings, 'CONNECTOR_URL', 'https://ds2demo1.collab-cloud.eu/connector/')
 
         for offer_id in offer_ids:
                 try:

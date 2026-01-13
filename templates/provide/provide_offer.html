@@ -294,7 +294,7 @@
                         <div class="d-flex gap-2 flex-wrap">
                             <button type="button" class="btn btn-outline-rounded btn-sm" id="logoutBtn" data-logout-url="{{ auth_logout_url }}" data-login-url="{{ auth_login_url }}"><i class="bi bi-box-arrow-right"></i> Logout</button>
                             <!--<button type="button" class="btn btn-outline-rounded btn-sm" id="profileBtn" data-profile-url="{{ auth_profile_proxy_url }}" data-login-url="{{ auth_login_url }}"><i class="bi bi-person-badge"></i> Profile API</button>-->
-                            <button type="button" class="btn btn-outline-rounded btn-sm" onclick="window.location.href='{% url 'provide:my_offers' %}'">
+                            <button type="button" class="btn btn-outline-rounded btn-sm d-none" onclick="window.location.href='{% url 'provide:my_offers' %}'">
                                 <i class="bi bi-folder2-open"></i> My Offers
                             </button>
 
@@ -763,13 +763,8 @@
                     testAccessBtn.disabled = true;
                     testAccessBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Testing...';
                     try {
-                        const resp = await fetch(url, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/x-www-form-urlencoded",
-                                "X-CSRFToken": getCookie("csrftoken") || "",
-                            },
-                            body: payload,
+                        const resp = await fetch(`${url}?${payload.toString()}`, {
+                            method: "GET",
                             credentials: "same-origin",
                         });
                         const text = await resp.text();
