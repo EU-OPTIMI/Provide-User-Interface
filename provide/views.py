@@ -1,5 +1,7 @@
 import logging
 import uuid
+import io
+import zipfile
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -245,6 +247,7 @@ def handle_metadata(request):
                 'auth_type': 'none',  # Default auth type
                 'data_model': offer_data.get('dataModel', ''),
                 'purpose_of_use': offer_data.get('purposeOfUse', ''),
+                'visibility': 'public',
             }
             
             logger.info("Persisting initial provider metadata in session", extra={'offer_title': initial_data.get('offer_title')})
@@ -286,6 +289,7 @@ def provide_offer(request):
         'auth_type': 'none',
         'data_model': '',
         'purpose_of_use': '',
+        'visibility': 'public',
     })
 
     if request.method == 'POST':
@@ -333,11 +337,13 @@ def provide_offer(request):
                     messages.success(request, "The offer was successfully provided to the data space, but no identifier was returned.")
                 auth_base = settings.AUTH_SERVICE_BASE_URL.rstrip('/')
                 auth_endpoint = f"{auth_base}/api/users/add-provided-offer/"
+                visibility_endpoint = f"{auth_base}/api/offer-visibility/"
 
                 auth_user = getattr(request, "auth_user", None)
                 user_id = getattr(auth_user, "id", None) or getattr(
                     request, "auth_profile", {}
                 ).get("id")
+                visibility_value = data.get("visibility")
 
                 if offer_id and user_id:
                     try:
@@ -354,6 +360,26 @@ def provide_offer(request):
                         logger.error(
                             "Failed to update auth service with provided offer",
                             extra={"user_id": user_id, "offer_id": offer_id, "error": str(exc)},
+                        )
+                if offer_id and visibility_value:
+                    try:
+                        resp = requests.post(
+                            visibility_endpoint,
+                            json={
+                                "offer_id": offer_id,
+                                "visibility": visibility_value,
+                            },
+                            timeout=5,
+                        )
+                        resp.raise_for_status()
+                    except requests.RequestException as exc:
+                        logger.error(
+                            "Failed to update auth service with offer visibility",
+                            extra={
+                                "offer_id": offer_id,
+                                "visibility": visibility_value,
+                                "error": str(exc),
+                            },
                         )
             
             # after runner success and offer_id extraction
@@ -419,6 +445,7 @@ def provide_offer(request):
         'end': field_value('end'),
         'data_model': field_value('data_model'),
         'purpose_of_use': field_value('purpose_of_use'),
+        'visibility': field_value('visibility'),
     }
 
     stage_sequence = [
@@ -679,17 +706,23 @@ def handle_file_upload(request):
                 print(f"OfferAccess UUID {offer_access_uuid} not found, creating new OfferAccess.")
         if not offer_access:
             offer_access = OfferAccess.objects.create()
-            offer_url = request.build_absolute_uri(reverse('provide:offer_access_api', args=[offer_access.uuid]))
-            offer_access.url = offer_url
+            offer_download_url = request.build_absolute_uri(
+                reverse('provide:offer_access_download', args=[offer_access.uuid])
+            )
+            offer_access.url = offer_download_url
             offer_access.save()
         else:
-            offer_url = offer_access.url
+            offer_download_url = offer_access.url
+        offer_data_url = request.build_absolute_uri(
+            reverse('provide:offer_access_api', args=[offer_access.uuid])
+        )
         offer_access.uploaded_data.add(*uploaded_data_instances)
-        print(f"OfferAccess used: {offer_access.uuid}, url: {offer_url}")
+        print(f"OfferAccess used: {offer_access.uuid}, url: {offer_download_url}")
         return JsonResponse({
             "message": "Files uploaded and data extracted successfully",
             "file_urls": file_urls,
-            "offer_access_url": offer_url,
+            "offer_access_url": offer_download_url,
+            "offer_access_data_url": offer_data_url,
             "offer_access_uuid": str(offer_access.uuid)
         })
     except Exception as e:
@@ -706,7 +739,48 @@ def offer_access_api(request, offer_uuid):
         return JsonResponse({"error": "OfferAccess not found."}, status=404)
     offer_url = offer_access.url
     all_data = [ud.data for ud in offer_access.uploaded_data.all()]
-    return JsonResponse({"offer_access_url": offer_url, "data": all_data}, safe=False)
+    files = []
+    for uploaded_data in offer_access.uploaded_data.select_related("file"):
+        file_obj = uploaded_data.file
+        files.append(
+            {
+                "id": str(file_obj.id),
+                "name": file_obj.file_name,
+                "url": request.build_absolute_uri(file_obj.file.url),
+            }
+        )
+    download_url = request.build_absolute_uri(
+        reverse('provide:offer_access_download', args=[offer_access.uuid])
+    )
+    return JsonResponse(
+        {"offer_access_url": offer_url, "download_url": download_url, "files": files, "data": all_data},
+        safe=False
+    )
+
+
+@require_GET
+@csrf_exempt
+def offer_access_download(request, offer_uuid):
+    from .models import OfferAccess
+    try:
+        offer_access = OfferAccess.objects.get(uuid=offer_uuid)
+    except OfferAccess.DoesNotExist:
+        return JsonResponse({"error": "OfferAccess not found."}, status=404)
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for uploaded_data in offer_access.uploaded_data.select_related("file"):
+            file_obj = uploaded_data.file
+            if not file_obj or not file_obj.file:
+                continue
+            file_path = file_obj.file.path
+            file_name = file_obj.file_name or file_obj.file.name.split("/")[-1]
+            zip_file.write(file_path, arcname=file_name)
+
+    buffer.seek(0)
+    response = HttpResponse(buffer.getvalue(), content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="offer-{offer_uuid}.zip"'
+    return response
 
 
 @require_GET
@@ -773,7 +847,7 @@ def my_offers(request):
 
         # Step 2: Fetch full offer data for each offer ID
         headers = {"Authorization": "Basic YWRtaW46cGFzc3dvcmQ="}
-        connector_base = getattr(settings, 'CONNECTOR_URL', 'https://ds2demo1.collab-cloud.eu/connector/')
+        connector_base = getattr(settings, 'CONNECTOR_URL', 'https://optimi.collab-cloud.eu/connector/')
 
         for offer_id in offer_ids:
                 try:
@@ -814,5 +888,3 @@ def my_offers(request):
 
 
     return render(request, "provide/my_offers.html", context)
-
-

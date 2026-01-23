@@ -26,6 +26,11 @@ class UploadMetadataForm(forms.Form):
     value = forms.CharField(widget=forms.HiddenInput, required=False)
     data_model = forms.ChoiceField(choices=[], required=True)
     purpose_of_use = forms.ChoiceField(choices=[], required=True)
+    visibility = forms.ChoiceField(
+        choices=(('public', 'Public'), ('private', 'Private')),
+        required=True,
+        initial='public',
+    )
     # Authentication fields for access URL testing and artifact creation
     AUTH_TYPE_CHOICES = (
         ('none', 'None'),
