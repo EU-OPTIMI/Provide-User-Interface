@@ -51,6 +51,23 @@ class UploadMetadataForm(forms.Form):
         purpose_options = getattr(settings, 'PURPOSE_OF_USE_OPTIONS', [])
         self.fields['data_model'].choices = _build_select_choices(data_model_options, 'Select data model')
         self.fields['purpose_of_use'].choices = _build_select_choices(purpose_options, 'Select purpose')
+        if self.is_bound:
+            mutable = self.data.copy()
+            if not mutable.get('offer_license'):
+                mutable['offer_license'] = self._first_choice_value('offer_license') or ''
+            if not mutable.get('data_model'):
+                mutable['data_model'] = self._first_choice_value('data_model') or ''
+            if not mutable.get('purpose_of_use'):
+                mutable['purpose_of_use'] = self._first_choice_value('purpose_of_use') or ''
+            if not mutable.get('visibility'):
+                mutable['visibility'] = 'public'
+            self.data = mutable
+
+    def _first_choice_value(self, field_name):
+        for value, _label in self.fields[field_name].choices:
+            if value:
+                return value
+        return None
 
     def clean(self):
         cleaned = super().clean()
