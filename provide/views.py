@@ -550,10 +550,10 @@ def provide_offer(request):
     }
 
     stage_sequence = [
-        ("Create", "Sketch the idea"),
+        #("Create", "Sketch the idea"),
         ("Describe", "Add metadata & policy"),
         ("Publish", "Share it with other data space participants"),
-        ("Monitor", "Track usage & reassure"),
+        ("Discover", "Explore data offers"),
     ]
     current_stage_label = "Describe"
     current_index = next((idx for idx, (label, _) in enumerate(stage_sequence) if label == current_stage_label), 1)
