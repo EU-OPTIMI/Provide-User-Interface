@@ -32,7 +32,20 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Constants
-ALLOWED_FILE_TYPES = ["application/json"]
+JSON_MIME_TYPES = {
+    "application/json",
+    "text/json",
+}
+XLSX_MIME_TYPES = {
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+XLS_MIME_TYPES = {
+    "application/vnd.ms-excel",
+    "application/msexcel",
+    "application/x-msexcel",
+    "application/x-ms-excel",
+}
+ALLOWED_FILE_TYPES = JSON_MIME_TYPES | XLSX_MIME_TYPES | XLS_MIME_TYPES
 UPLOAD_DIR = 'uploads'
 
 
@@ -199,6 +212,94 @@ def generate_user_metadata(data, license_url):
         },
         'artifact': artifact
     }
+
+
+def normalize_cell_value(value):
+    """Normalize values so they're JSON-serializable."""
+    from datetime import date, datetime
+
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    return value
+
+
+def rows_to_records(rows):
+    """Convert Excel rows into a list of dicts (header) or list of lists."""
+    if not rows:
+        return []
+    header = [str(v).strip() if v is not None else "" for v in rows[0]]
+    has_header = any(header)
+    if has_header:
+        headers = [h if h else f"column_{idx + 1}" for idx, h in enumerate(header)]
+        data_rows = rows[1:]
+        records = []
+        for row in data_rows:
+            if not any(cell is not None for cell in row):
+                continue
+            normalized = [normalize_cell_value(cell) for cell in row]
+            records.append(dict(zip(headers, normalized)))
+        return records
+    return [[normalize_cell_value(cell) for cell in row] for row in rows]
+
+
+def parse_excel_file(file_path, file_kind):
+    """Parse an Excel file into JSON-serializable data."""
+    if file_kind == "xlsx":
+        try:
+            import openpyxl
+        except ImportError as exc:
+            raise ImportError("openpyxl is required to parse .xlsx files") from exc
+        workbook = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
+        sheets = []
+        for sheet_name in workbook.sheetnames:
+            sheet = workbook[sheet_name]
+            rows = list(sheet.iter_rows(values_only=True))
+            sheets.append({
+                "name": sheet_name,
+                "data": rows_to_records(rows),
+            })
+        return {"file_type": "xlsx", "sheets": sheets}
+    if file_kind == "xls":
+        try:
+            import xlrd
+        except ImportError as exc:
+            raise ImportError("xlrd is required to parse .xls files") from exc
+        workbook = xlrd.open_workbook(file_path)
+        sheets = []
+        for sheet_name in workbook.sheet_names():
+            sheet = workbook.sheet_by_name(sheet_name)
+            rows = []
+            for row_idx in range(sheet.nrows):
+                row_values = []
+                for col_idx in range(sheet.ncols):
+                    cell = sheet.cell(row_idx, col_idx)
+                    value = cell.value
+                    if cell.ctype == xlrd.XL_CELL_DATE:
+                        try:
+                            value = xlrd.xldate_as_datetime(value, workbook.datemode)
+                        except Exception:
+                            pass
+                    row_values.append(normalize_cell_value(value))
+                rows.append(row_values)
+            sheets.append({
+                "name": sheet_name,
+                "data": rows_to_records(rows),
+            })
+        return {"file_type": "xls", "sheets": sheets}
+    raise ValueError(f"Unsupported Excel file type: {file_kind}")
+
+
+def classify_uploaded_file(uploaded_file):
+    """Return file kind based on content type or extension."""
+    content_type = (uploaded_file.content_type or "").lower()
+    name = (uploaded_file.name or "").lower()
+    if name.endswith(".json") or content_type in JSON_MIME_TYPES:
+        return "json"
+    if name.endswith(".xlsx") or content_type in XLSX_MIME_TYPES:
+        return "xlsx"
+    if name.endswith(".xls") or content_type in XLS_MIME_TYPES:
+        return "xls"
+    return None
 
 
 # Views
@@ -664,9 +765,13 @@ def handle_file_upload(request):
         uploaded_data_instances = []
         for uploaded_file in files:
             print(f"Processing file: {uploaded_file.name}, content_type: {uploaded_file.content_type}")
-            if uploaded_file.content_type not in ALLOWED_FILE_TYPES:
-                print("Invalid file type: " + uploaded_file.content_type)
-                return JsonResponse({"error": "Invalid file type. Only JSON files are allowed."}, status=400)
+            file_kind = classify_uploaded_file(uploaded_file)
+            if not file_kind:
+                print("Invalid file type: " + (uploaded_file.content_type or "unknown"))
+                return JsonResponse(
+                    {"error": "Invalid file type. Only JSON and Excel files are allowed."},
+                    status=400
+                )
 
             if not os.path.exists(UPLOAD_DIR):
                 os.makedirs(UPLOAD_DIR)
@@ -678,12 +783,18 @@ def handle_file_upload(request):
             file_urls.append(request.build_absolute_uri(file_instance.file.url))
             # Parse JSON and save to UploadedData
             try:
-                with open(file_instance.file.path, 'r', encoding='utf-8') as f:
-                    file_data = f.read()
-                json_data = json.loads(file_data)
+                if file_kind == "json":
+                    with open(file_instance.file.path, 'r', encoding='utf-8') as f:
+                        file_data = f.read()
+                    json_data = json.loads(file_data)
+                else:
+                    json_data = parse_excel_file(file_instance.file.path, file_kind)
+            except ImportError as e:
+                print(f"Missing Excel parser dependency: {e}")
+                return JsonResponse({"error": str(e)}, status=500)
             except Exception as e:
-                print(f"Failed to parse JSON: {e}")
-                return JsonResponse({"error": f"Failed to parse JSON: {str(e)}"}, status=400)
+                print(f"Failed to parse file: {e}")
+                return JsonResponse({"error": f"Failed to parse file: {str(e)}"}, status=400)
 
             if UploadedData is None:
                 print("UploadedData model not found.")
