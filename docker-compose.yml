@@ -6,15 +6,11 @@ services:
     volumes:
       - .:/app
       - .env:/app/.env
-      # Persistent volumes for data (mounting directories, not files)
-      - media_data:/app/media
-      - uploads_data:/app/uploads
+      # Bind mount to include seeded files and persist locally
+      - ./media:/app/media
+      - ./uploads:/app/uploads
     ports:
       - "8001:8000"
 
 # Named volumes for persistence
-volumes:
-  media_data:
-    driver: local
-  uploads_data:
-    driver: local
+volumes: {}
