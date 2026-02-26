@@ -5,6 +5,7 @@ import urllib3
 from datetime import datetime, timezone
 import urllib.parse
 from django.conf import settings 
+from core.http_utils import parse_json_response
 
 
 connector_url = settings.CONNECTOR_URL
@@ -66,17 +67,26 @@ def make_request(url, headers=None, body=None, method='post', auth_meta=None):
         else:
             logger.debug("Dispatching connector POST request", extra={'url': url})
             response = requests.post(url, headers=final_headers, json=body, auth=auth_obj, verify=verify_ssl)
-        try:
-            response_json = response.json()
-        except ValueError:
-            response_json = None
         if response.status_code in [200, 201]:
+            response_json, parse_error = parse_json_response(
+                response,
+                expected_statuses=(200, 201),
+                logger_obj=logger,
+                context=f"Connector request {method.upper()} {url}",
+            )
             logger.debug("Connector request succeeded", extra={'url': url, 'status_code': response.status_code})
             return {
                 'status': 'success',
-                'data': response_json
+                'data': response_json,
+                'json_error': parse_error,
             }
         else:
+            response_json, _ = parse_json_response(
+                response,
+                expected_statuses=None,
+                logger_obj=logger,
+                context=f"Connector request {method.upper()} {url}",
+            )
             logger.warning(
                 "Connector request returned non-success status",
                 extra={'url': url, 'status_code': response.status_code, 'reason': response.reason}
@@ -107,17 +117,27 @@ def test_access_url(access_url, auth_meta=None, timeout=10, method='get'):
         if not verify_ssl:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         resp = requests.request(method.upper(), access_url, headers=headers, auth=auth, timeout=timeout, verify=verify_ssl)
-        try:
-            data = resp.json()
-        except ValueError:
-            data = None
+        data, parse_error = parse_json_response(
+            resp,
+            expected_statuses=(200,),
+            logger_obj=logger,
+            context=f"Access URL test {method.upper()} {access_url}",
+        )
         # Include ssl_verified in response so caller knows whether verification was used
-        result = {'status_code': resp.status_code, 'reason': resp.reason, 'data': data, 'ssl_verified': verify_ssl}
+        result = {
+            'status_code': resp.status_code,
+            'reason': resp.reason,
+            'data': data,
+            'ssl_verified': verify_ssl,
+        }
         if resp.status_code >= 200 and resp.status_code < 300:
+            if parse_error:
+                result.update({'status': 'error', 'message': f'Expected JSON response but received {parse_error}'})
+                return result
             result.update({'status': 'success'})
             return result
         else:
-            result.update({'status': 'error', 'text': resp.text})
+            result.update({'status': 'error', 'text': resp.text, 'json_error': parse_error})
             return result
     except requests.RequestException as e:
         return {'status': 'error', 'message': str(e), 'ssl_verified': getattr(settings, 'ENFORCE_CONNECTOR_SSL', True)}

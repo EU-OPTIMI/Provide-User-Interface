@@ -22,6 +22,7 @@ from django.urls import reverse
 from django.core.exceptions import ValidationError
 import requests
 from urllib.parse import urljoin, quote
+from core.http_utils import parse_json_response
 
 # Add a simple model for extracted data (to be added in models.py)
 try:
@@ -632,11 +633,14 @@ def auth_profile_proxy(request):
         logger.warning("Profile proxy auth service unreachable: %s", exc)
         return JsonResponse({'detail': 'Authentication service unavailable.'}, status=503)
 
-    content_type = resp.headers.get('Content-Type', '')
-    if 'application/json' in content_type:
-        payload = resp.json()
-    else:
-        payload = {'detail': resp.text}
+    payload, parse_error = parse_json_response(
+        resp,
+        expected_statuses=(200,),
+        logger_obj=logger,
+        context="Auth profile proxy request",
+    )
+    if parse_error:
+        payload = {'detail': resp.text[:200]}
 
     return JsonResponse(payload, status=resp.status_code, safe=False)
 
@@ -950,7 +954,16 @@ def my_offers(request):
         try:
             resp = requests.get(endpoint_ids, timeout=5)
             resp.raise_for_status()
-            offer_list = resp.json().get("provided_offer_ids", [])
+            offer_payload, parse_error = parse_json_response(
+                resp,
+                expected_statuses=(200,),
+                logger_obj=logger,
+                context=f"Fetch provided offers for user {user_id}",
+            )
+            if parse_error:
+                logger.warning("Unable to parse provided offers list for user_id=%s", user_id)
+                offer_payload = {}
+            offer_list = offer_payload.get("provided_offer_ids", [])
             offer_ids = [str(offer) for offer in offer_list if offer]
         except requests.RequestException as exc:
             print(f"Failed to fetch provided offers for user {user_id}: {exc}")
@@ -965,7 +978,15 @@ def my_offers(request):
                     url = f"{connector_base.rstrip('/')}/api/offers/{offer_id}"
                     resp_data = requests.get(url, headers=headers, timeout=5, verify=False)
                     resp_data.raise_for_status()
-                    offer_data = resp_data.json()
+                    offer_data, parse_error = parse_json_response(
+                        resp_data,
+                        expected_statuses=(200,),
+                        logger_obj=logger,
+                        context=f"Fetch offer details {offer_id}",
+                    )
+                    if parse_error:
+                        logger.warning("Skipping non-JSON offer payload for offer_id=%s", offer_id)
+                        continue
                     
                     # Map connector API fields to template fields
                     offers.append({
@@ -994,7 +1015,7 @@ def my_offers(request):
         "provider_cookie_name": getattr(settings, 'SESSION_COOKIE_NAME', 'sessionid'),
     }
     print('OFFERS', offers)
-    print('PROVIDED OFFERS',resp.json().get("provided_offer_ids", []))
+    print('PROVIDED OFFERS', offer_ids if user_id else [])
 
 
 

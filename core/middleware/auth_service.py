@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 import requests
 from django.conf import settings
 from django.http import JsonResponse
+from core.http_utils import parse_json_response
 
 logger = logging.getLogger(__name__)
 
@@ -150,10 +151,13 @@ class AuthServiceMiddleware:
             return None, "Authentication service unavailable."
 
         if response.status_code == 200:
-            try:
-                payload = response.json()
-            except ValueError:
-                logger.warning("Auth service returned non-JSON response.")
+            payload, parse_error = parse_json_response(
+                response,
+                expected_statuses=(200,),
+                logger_obj=logger,
+                context="Auth profile request",
+            )
+            if parse_error:
                 return None, "Invalid response from authentication service."
             profile = payload.get("user") or payload.get("data") or payload
             return profile, None
